@@ -4,14 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Filakalk – kalkulátor 3D tisku</title>
-<link rel="manifest" href="manifest.webmanifest" crossorigin="use-credentials">
-<meta name="theme-color" content="#1d4ed8" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#1d4ed8">
 <meta name="application-name" content="Filakalk">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Filakalk">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest" crossorigin="use-credentials">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -69,6 +68,8 @@ input[type=color]::-webkit-color-swatch-wrapper{padding:0}input[type=color]::-we
 .lbl{display:block;margin-bottom:4px}
 .sel{display:flex;gap:8px;align-items:center}.sw{width:22px;height:22px;flex:0 0 22px;border-radius:50%;border:1px solid var(--line)}
 .btn{padding:9px 14px;border:1px solid var(--acc);background:transparent;color:var(--acc);border-radius:8px;font:inherit;cursor:pointer;margin-top:10px}
+.btn:disabled{opacity:.55;cursor:default}
+.pname{color:var(--mut);font-size:.95rem;overflow-wrap:anywhere}
 input.low{background:rgba(217,83,79,.2);border-color:#d9534f}
 #mbar{display:none}.dl{display:none}@media(max-width:859px){.dl{display:inline}}
 @media(max-width:859px){
@@ -115,7 +116,7 @@ if(!S||!S.single||!S.multi||!S.cat)S=JSON.parse(JSON.stringify(DEF));
 const COL={'Černá / Bílá':'#1a1a1a','Černá':'#1a1a1a','Bílá':'#f2f2f2','Šedá':'#8a8f94','Dřevo':'#a9794c'};
 S.cat.forEach(c=>{if(!/^#[0-9a-f]{6}$/i.test(c[2]))c[2]=COL[c[2]]||'#9aa0a6'});
 const sw=sel=>{const c=sel!==''&&sel!=null&&S.cat[sel];return c?(c[4]?`linear-gradient(90deg,${c[2]} 50%,${c[4]} 50%)`:c[2]):'transparent'};
-const wTxt=c=>c[5]!==''&&c[5]!=null?` · zbývá <span${isLow(c[5])?' class="lowt"':''}>${esc(c[5])} g</span>`:'';
+const wTxt=c=>c[5]!==''&&c[5]!=null?` · <span${isLow(c[5])?' class="lowt"':''}>${esc(c[5])} g</span>`:'';
 const ddText=v=>{const c=v!==''&&v!=null&&S.cat[v];return c?esc(c[0]+' '+c[1])+' – '+c[3]+' Kč'+wTxt(c):'Vybrat z katalogu…'};
 const ddHTML=(id,v)=>`<div class="dd" data-dd="${id}"><button type="button" class="ddb" aria-haspopup="listbox" aria-expanded="false"><span class="sw" style="background:${sw(v)}"></span><span class="t">${ddText(v)}</span><span aria-hidden="true">▾</span></button><ul class="ddl" role="listbox" hidden><li role="option" data-v="" aria-selected="${v===''||v==null}"><span class="sw" style="background:transparent"></span>Vybrat z katalogu…</li>${S.cat.map((c,i)=>`<li role="option" data-v="${i}" aria-selected="${String(v)===String(i)}"><span class="sw" style="background:${sw(i)}"></span>${esc(c[0]+' '+c[1])} – ${c[3]} Kč${wTxt(c)}</li>`).join('')}</ul></div>`;
 const ddSet=(id,v)=>{const e=document.querySelector('[data-dd="'+id+'"]');if(!e)return;e.querySelector('.ddb .sw').style.background=sw(v);e.querySelector('.ddb .t').innerHTML=ddText(v)};
@@ -148,7 +149,9 @@ function result(){
  const bar=r.items.map((it,i)=>`<i style="width:${Math.max(it[1],0)/tot*100}%;background:var(--c${i+1})" title="${it[0]}"></i>`).join('');
  const rows=r.items.slice(0,5).map((it,i)=>`<div class="row"><span><span class="dot" style="background:var(--c${i+1})"></span>${it[0]}</span><b>${kc(it[1])}</b></div>`).join('');
  document.getElementById('mp').textContent=kc(r.price);
- document.getElementById('res').innerHTML=`<h2>Doporučená prodejní cena</h2><div class="price">${kc(r.price)}</div>
+ refreshSub();
+ const nm=String(d.name||'').trim();
+ document.getElementById('res').innerHTML=`<h2>Doporučená prodejní cena</h2>${nm?`<div class="pname">${esc(nm)}</div>`:''}<div class="price">${kc(r.price)}</div>
  <div class="bar">${bar}</div>${rows}
  <div class="row tot"><span>Výrobní náklady</span><b>${kc(r.cost)}</b></div>
  <div class="row"><span><span class="dot" style="background:var(--c6)"></span>Zisk (marže)</span><b>${kc(r.profit)}</b></div>
@@ -162,17 +165,22 @@ function bindFields(d){
 }
 let subMsg='';
 const clearMsg=()=>{subMsg='';const m=document.getElementById('subm');if(m)m.textContent=''};
+const sigOf=()=>{const d=S[S.tab];const it=S.tab==='single'?[[d.sel,d.g]]:d.f.map(x=>[x.sel,x.g]);return JSON.stringify([String(d.name||'').trim(),it.map(([s,g])=>[s==null?'':String(s),N(g)])])};
+const refreshSub=()=>{const b=document.getElementById('sub');if(!b)return;const done=S[S.tab].sub===sigOf();b.disabled=done;b.textContent=done?'Odečteno ✓':'Odečíst z cívky'};
 function subtract(items){
- const out=[];
+ const d=S[S.tab];
+ if(d.sub===sigOf()){subMsg='Tento výtisk už byl odečten. Pro další odečet změňte název projektu, hmotnost nebo filament.';view();return}
+ const out=[];let n=0;
  items.forEach(({sel,g,label})=>{
   if(N(g)<=0)return;
   const c=sel!==''&&sel!=null&&S.cat[sel];
   if(!c){out.push(label+'vyberte filament z katalogu.');return}
   if(c[5]===''||c[5]==null){out.push(label+c[0]+' '+c[1]+': v katalogu chybí hmotnost.');return}
   const left=Math.max(0,Math.round((N(c[5])-N(g))*10)/10);
-  c[5]=String(left);
+  c[5]=String(left);n++;
   out.push(label+'odečteno '+N(g)+' g z '+c[0]+' '+c[1]+', zbývá '+left+' g'+'.');
  });
+ if(n)d.sub=sigOf();
  subMsg=out.length?out.join(' '):'Není co odečíst, zadejte spotřebu.';
  save();view();
 }
@@ -182,6 +190,7 @@ function view(){
  const app=document.getElementById('app');
  if(S.tab==='cat'){catView(app);return}
  const d=S[S.tab];let first;
+ const nameCard=`<div class="card" style="margin-bottom:14px"><label class="lbl" for="pname"><b>Název projektu</b></label><input id="pname" data-k="name" type="text" maxlength="80" placeholder="Např. Stojan na sluchátka" value="${esc(d.name||'')}"></div>`;
  if(S.tab==='single'){
   first=`<div class="card"><h2>Materiál</h2>
   <div style="margin-bottom:8px">${ddHTML('pick1',d.sel)}</div>
@@ -192,7 +201,7 @@ function view(){
   <label><small>Spotřeba (g)</small><input data-fi="${i}" data-fk="g" inputmode="decimal" value="${x.g}"></label>
   <label><small>Cena za kg (Kč)</small><input data-fi="${i}" data-fk="p" inputmode="decimal" value="${x.p}"></label></div>`).join('')+`</div>`;
  }
- app.innerHTML=`<div class="grid"><div>${first}<div class="card" style="margin-top:14px"><h2>Provoz a práce</h2>${fields(d,S.tab)}</div><button class="btn" id="sub" style="width:100%">Odečíst z cívky</button><p class="note" id="subm" role="status">${subMsg}</p></div><div class="card res" id="res"></div></div>`;
+ app.innerHTML=`<div class="grid"><div>${nameCard}${first}<div class="card" style="margin-top:14px"><h2>Provoz a práce</h2>${fields(d,S.tab)}</div><button class="btn" id="sub" style="width:100%">Odečíst z cívky</button><p class="note" id="subm" role="status">${subMsg}</p></div><div class="card res" id="res"></div></div>`;
  bindFields(d);
  document.getElementById('sub').onclick=()=>subtract(S.tab==='single'?[{sel:d.sel,g:d.g,label:''}]:d.f.map((x,i)=>({sel:x.sel,g:x.g,label:'Cívka '+(i+1)+': '})));
  if(S.tab==='single'){
@@ -239,7 +248,7 @@ function catView(app){
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;subMsg='';save();view()});
 view();
-if('serviceWorker' in navigator){
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){
  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});
 }
 </script>

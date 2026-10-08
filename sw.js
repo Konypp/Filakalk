@@ -1,23 +1,22 @@
-// Service worker – Filakalk
-// Při nahrání nové verze aplikace stačí zvýšit VERSION.
-const VERSION = 'v3';
-const CACHE = 'filakalk-' + VERSION;
+// Filakalk service worker – offline použití aplikace.
+// Při změně souborů zvyšte VERSION, ať si zařízení stáhnou novou verzi.
+const VERSION = 'filakalk-v1';
 const SHELL = [
   './',
-  'index.html',
-  'manifest.webmanifest',
-  'icons/icon.svg',
-  'icons/icon-192.png',
-  'icons/icon-512.png',
-  'icons/icon-maskable-512.png',
-  'icons/apple-touch-icon.png',
-  'icons/favicon-32.png'
+  './index.html',
+  './manifest.webmanifest',
+  './icons/icon.svg',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-maskable-512.png',
+  './icons/apple-touch-icon.png',
+  './icons/favicon-32.png'
 ];
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE)
-      .then(c => Promise.all(SHELL.map(u => c.add(new Request(u, { cache: 'reload' })).catch(() => {}))))
+    caches.open(VERSION)
+      .then(c => Promise.all(SHELL.map(u => c.add(new Request(u, { cache: 'reload', credentials: 'same-origin' })).catch(() => {}))))
       .then(() => self.skipWaiting())
   );
 });
@@ -25,7 +24,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => (k.startsWith('filakalk-') || k.startsWith('kalk3d-')) && k !== CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k.startsWith('filakalk-') && k !== VERSION).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -35,25 +34,25 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  // Stránka: nejdřív síť (vždy čerstvá verze), při výpadku uložená kopie.
+  // Stránka: nejdřív síť (aktuální verze), při výpadku uložená kopie.
   if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req)
         .then(res => {
-          if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put('index.html', copy)); }
+          if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put('./index.html', copy)); }
           return res;
         })
-        .catch(() => caches.match('index.html').then(r => r || caches.match('./')))
+        .catch(() => caches.match('./index.html').then(r => r || caches.match('./')))
     );
     return;
   }
 
-  // Vlastní soubory (ikony, manifest): z cache, na pozadí aktualizovat.
+  // Vlastní soubory: z cache, na pozadí aktualizovat.
   if (url.origin === location.origin) {
     e.respondWith(
       caches.match(req).then(hit => {
         const net = fetch(req).then(res => {
-          if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
+          if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
           return res;
         }).catch(() => hit);
         return hit || net;
@@ -62,13 +61,16 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Písma Google: z cache, při prvním načtení uložit (offline se použije systémové písmo, pokud chybí).
+  // Písma Google: z cache, na pozadí aktualizovat (bez nich se použije systémové písmo).
   if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
     e.respondWith(
-      caches.match(req).then(hit => hit || fetch(req).then(res => {
-        if (res.ok || res.type === 'opaque') { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
-        return res;
-      }))
+      caches.match(req).then(hit => {
+        const net = fetch(req).then(res => {
+          if (res.ok || res.type === 'opaque') { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
+          return res;
+        }).catch(() => hit);
+        return hit || net;
+      })
     );
   }
 });
