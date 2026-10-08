@@ -7,5 +7,3 @@
 - **Odečet z cívky** – po dokončení tisku odečte spotřebovaný filament z katalogu, chrání před dvojitým odečtem.
 
 **Jak počítá cenu:** materiál + elektřina (z příkonu nebo naměřených kWh) + amortizace + práce, k tomu riziková přirážka a obchodní marže. Výsledek ukazuje velkou cenou, rozpadem v grafu a tabulkou jednotlivých položek.
-
-Chceš, abych to upravil do kratší verze (třeba na jednu větu do README nebo na web), nebo uložil jako soubor? 
