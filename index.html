@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Kalkulátor 3D tisku</title>
+<title>Filakalk – kalkulátor 3D tisku</title>
 <link rel="manifest" href="manifest.webmanifest" crossorigin="use-credentials">
 <meta name="theme-color" content="#1d4ed8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
-<meta name="application-name" content="Kalkulátor 3D">
+<meta name="application-name" content="Filakalk">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Kalkulátor 3D">
+<meta name="apple-mobile-web-app-title" content="Filakalk">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -25,7 +25,7 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 'Familjen Grotesk','Segoe UI',system-ui,sans-serif}
 .wrap{max-width:980px;margin:0 auto;padding:16px}
-h1{font-size:1.5rem;margin:8px 0 2px}
+h1{margin:8px 0 4px;line-height:0;color:var(--ink)}.wm{height:46px;width:auto;display:block}
 .sub{color:var(--mut);margin:0 0 14px}
 .tabs{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto}
 .tabs button{flex:0 0 auto;padding:9px 14px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;font:inherit;cursor:pointer}
@@ -73,7 +73,7 @@ input.low{background:rgba(217,83,79,.2);border-color:#d9534f}
 #mbar{display:none}.dl{display:none}@media(max-width:859px){.dl{display:inline}}
 @media(max-width:859px){
  .wrap{padding:12px 12px 84px}
- h1{font-size:1.3rem}
+ .wm{height:38px}
  #mbar:not([hidden]){display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;justify-content:space-between;align-items:baseline;gap:8px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:var(--panel);border-top:1px solid var(--line);box-shadow:0 -4px 14px rgba(0,0,0,.12)}
  #mbar b{font-size:1.35rem}
  .tw{overflow:visible}
@@ -92,8 +92,8 @@ input.low{background:rgba(217,83,79,.2);border-color:#d9534f}
 </head>
 <body>
 <div class="wrap">
-<h1>Kalkulátor 3D tisku</h1>
-<p class="sub">Náklady a doporučená prodejní cena</p>
+<h1 aria-label="Filakalk"><svg class="wm" viewBox="0 0 780 170" aria-hidden="true"><svg x="0" y="5" width="160" height="160" viewBox="0 0 512 512"><mask id="wmm"><rect width="512" height="512" fill="#fff"/><rect x="226" y="236" width="60" height="13" rx="6.5"/><rect x="226" y="264" width="60" height="13" rx="6.5"/></mask><g fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="256" cy="256" r="176" stroke-width="26"/><g stroke-width="10"><circle cx="256" cy="256" r="134"/><circle cx="256" cy="256" r="106"/><circle cx="256" cy="256" r="78"/></g><path d="M421 316C458 350 440 416 372 446" stroke-width="18"/></g><circle cx="256" cy="256" r="50" fill="currentColor" mask="url(#wmm)"/></svg><g transform="translate(200 8) scale(1.1)"><g fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"><path d="M20 120V50Q20 20 50 20M2 62H44"/><path d="M88 62V120"/><path d="M128 20V120"/><circle cx="180" cy="90" r="30"/><path d="M210 62V120"/><path d="M250 20V120M288 62 252 96M266 82 292 120"/><circle cx="348" cy="90" r="30"/><path d="M378 62V120"/><path d="M418 20V120"/><path d="M458 20V120M496 62 460 96M474 82 500 120"/></g><circle cx="88" cy="28" r="9" fill="currentColor" stroke="none"/></g></svg></h1>
+<p class="sub">Kalkulátor 3D tisku – náklady a doporučená prodejní cena</p>
 <div class="tabs" role="tablist">
 <button role="tab" data-t="single">Jednobarevný</button>
 <button role="tab" data-t="multi">Vícebarevný (AMS)</button>
@@ -115,7 +115,7 @@ if(!S||!S.single||!S.multi||!S.cat)S=JSON.parse(JSON.stringify(DEF));
 const COL={'Černá / Bílá':'#1a1a1a','Černá':'#1a1a1a','Bílá':'#f2f2f2','Šedá':'#8a8f94','Dřevo':'#a9794c'};
 S.cat.forEach(c=>{if(!/^#[0-9a-f]{6}$/i.test(c[2]))c[2]=COL[c[2]]||'#9aa0a6'});
 const sw=sel=>{const c=sel!==''&&sel!=null&&S.cat[sel];return c?(c[4]?`linear-gradient(90deg,${c[2]} 50%,${c[4]} 50%)`:c[2]):'transparent'};
-const wTxt=c=>c[5]!==''&&c[5]!=null?` · <span${isLow(c[5])?' class="lowt"':''}>${esc(c[5])} g</span>`:'';
+const wTxt=c=>c[5]!==''&&c[5]!=null?` · zbývá <span${isLow(c[5])?' class="lowt"':''}>${esc(c[5])} g</span>`:'';
 const ddText=v=>{const c=v!==''&&v!=null&&S.cat[v];return c?esc(c[0]+' '+c[1])+' – '+c[3]+' Kč'+wTxt(c):'Vybrat z katalogu…'};
 const ddHTML=(id,v)=>`<div class="dd" data-dd="${id}"><button type="button" class="ddb" aria-haspopup="listbox" aria-expanded="false"><span class="sw" style="background:${sw(v)}"></span><span class="t">${ddText(v)}</span><span aria-hidden="true">▾</span></button><ul class="ddl" role="listbox" hidden><li role="option" data-v="" aria-selected="${v===''||v==null}"><span class="sw" style="background:transparent"></span>Vybrat z katalogu…</li>${S.cat.map((c,i)=>`<li role="option" data-v="${i}" aria-selected="${String(v)===String(i)}"><span class="sw" style="background:${sw(i)}"></span>${esc(c[0]+' '+c[1])} – ${c[3]} Kč${wTxt(c)}</li>`).join('')}</ul></div>`;
 const ddSet=(id,v)=>{const e=document.querySelector('[data-dd="'+id+'"]');if(!e)return;e.querySelector('.ddb .sw').style.background=sw(v);e.querySelector('.ddb .t').innerHTML=ddText(v)};
@@ -148,7 +148,7 @@ function result(){
  const bar=r.items.map((it,i)=>`<i style="width:${Math.max(it[1],0)/tot*100}%;background:var(--c${i+1})" title="${it[0]}"></i>`).join('');
  const rows=r.items.slice(0,5).map((it,i)=>`<div class="row"><span><span class="dot" style="background:var(--c${i+1})"></span>${it[0]}</span><b>${kc(it[1])}</b></div>`).join('');
  document.getElementById('mp').textContent=kc(r.price);
- document.getElementById('res').innerHTML=`<h2>Doporučená prodejní cena</h2>${S.name?`<p class="sub" style="margin:0 0 6px">${esc(S.name)}</p>`:''}<div class="price">${kc(r.price)}</div>
+ document.getElementById('res').innerHTML=`<h2>Doporučená prodejní cena</h2><div class="price">${kc(r.price)}</div>
  <div class="bar">${bar}</div>${rows}
  <div class="row tot"><span>Výrobní náklady</span><b>${kc(r.cost)}</b></div>
  <div class="row"><span><span class="dot" style="background:var(--c6)"></span>Zisk (marže)</span><b>${kc(r.profit)}</b></div>
@@ -160,25 +160,20 @@ function fields(d,key){
 function bindFields(d){
  document.querySelectorAll('[data-k]').forEach(el=>el.oninput=()=>{d[el.dataset.k]=el.value;clearMsg();save();result()});
 }
-let subMsg='',pend=null;
-const clearMsg=()=>{subMsg='';pend=null;const m=document.getElementById('subm');if(m)m.textContent='';const c=document.getElementById('conf');if(c)c.innerHTML=''};
-function subtract(items,force){
- const nm=(S.name||'').trim(),key=nm.toLowerCase();
- S.done=S.done||[];
- if(!force&&key&&S.done.some(x=>x.toLowerCase()===key)&&items.some(x=>N(x.g)>0)){pend=items;subMsg='';view();return}
- pend=null;
- const out=[];let did=false;
+let subMsg='';
+const clearMsg=()=>{subMsg='';const m=document.getElementById('subm');if(m)m.textContent=''};
+function subtract(items){
+ const out=[];
  items.forEach(({sel,g,label})=>{
   if(N(g)<=0)return;
   const c=sel!==''&&sel!=null&&S.cat[sel];
   if(!c){out.push(label+'vyberte filament z katalogu.');return}
   if(c[5]===''||c[5]==null){out.push(label+c[0]+' '+c[1]+': v katalogu chybí hmotnost.');return}
   const left=Math.max(0,Math.round((N(c[5])-N(g))*10)/10);
-  c[5]=String(left);did=true;
+  c[5]=String(left);
   out.push(label+'odečteno '+N(g)+' g z '+c[0]+' '+c[1]+', zbývá '+left+' g'+'.');
  });
  subMsg=out.length?out.join(' '):'Není co odečíst, zadejte spotřebu.';
- if(did&&key&&!S.done.some(x=>x.toLowerCase()===key))S.done.push(nm);
  save();view();
 }
 function view(){
@@ -197,10 +192,8 @@ function view(){
   <label><small>Spotřeba (g)</small><input data-fi="${i}" data-fk="g" inputmode="decimal" value="${x.g}"></label>
   <label><small>Cena za kg (Kč)</small><input data-fi="${i}" data-fk="p" inputmode="decimal" value="${x.p}"></label></div>`).join('')+`</div>`;
  }
- app.innerHTML=`<div class="grid"><div><div class="card" style="margin-bottom:14px"><h2>Projekt</h2><input id="pname" type="text" aria-label="Název projektu" placeholder="Název projektu" autocomplete="off" list="pnames" value="${esc(S.name||'')}"><datalist id="pnames">${(S.done||[]).map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>${first}<div class="card" style="margin-top:14px"><h2>Provoz a práce</h2>${fields(d,S.tab)}</div><button class="btn" id="sub" style="width:100%">Odečíst z cívky</button><div id="conf">${pend?`<div class="card" role="alertdialog" style="border-color:#d9534f;margin-top:10px"><b>Projekt „${esc(S.name)}“ už byl odečten.</b><br>Opravdu odečíst znovu?<div style="display:flex;gap:8px"><button class="btn" id="cyes" style="flex:1">Ano, odečíst</button><button class="btn" id="cno" style="flex:1">Zrušit</button></div></div>`:''}</div><p class="note" id="subm" role="status">${subMsg}</p></div><div class="card res" id="res"></div></div>`;
+ app.innerHTML=`<div class="grid"><div>${first}<div class="card" style="margin-top:14px"><h2>Provoz a práce</h2>${fields(d,S.tab)}</div><button class="btn" id="sub" style="width:100%">Odečíst z cívky</button><p class="note" id="subm" role="status">${subMsg}</p></div><div class="card res" id="res"></div></div>`;
  bindFields(d);
- document.getElementById('pname').oninput=e=>{S.name=e.target.value;clearMsg();save();result()};
- if(pend){const p=pend;document.getElementById('cyes').onclick=()=>subtract(p,true);document.getElementById('cno').onclick=()=>{pend=null;view()}}
  document.getElementById('sub').onclick=()=>subtract(S.tab==='single'?[{sel:d.sel,g:d.g,label:''}]:d.f.map((x,i)=>({sel:x.sel,g:x.g,label:'Cívka '+(i+1)+': '})));
  if(S.tab==='single'){
   onPick=(id,v)=>{d.sel=v;d.pr=S.cat[v][3];save();view()};
@@ -244,7 +237,7 @@ function catView(app){
  app.querySelectorAll('[data-c2off]').forEach(b=>b.onclick=()=>{S.cat[b.dataset.c2off][4]='';save();view()});
  document.getElementById('add').onclick=()=>{S.cat.push(['','','#9aa0a6',0,'','']);save();view()};
 }
-document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;subMsg='';pend=null;save();view()});
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;subMsg='';save();view()});
 view();
 if('serviceWorker' in navigator){
  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});

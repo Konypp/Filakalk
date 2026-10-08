@@ -1,7 +1,7 @@
-// Service worker – Kalkulátor 3D tisku
+// Service worker – Filakalk
 // Při nahrání nové verze aplikace stačí zvýšit VERSION.
-const VERSION = 'v1';
-const CACHE = 'kalk3d-' + VERSION;
+const VERSION = 'v3';
+const CACHE = 'filakalk-' + VERSION;
 const SHELL = [
   './',
   'index.html',
@@ -25,7 +25,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k.startsWith('kalk3d-') && k !== CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => (k.startsWith('filakalk-') || k.startsWith('kalk3d-')) && k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
