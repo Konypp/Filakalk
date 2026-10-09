@@ -1,6 +1,6 @@
 // Filakalk service worker – offline použití aplikace.
-// Při změně souborů zvyšte VERSION, ať si zařízení stáhnou novou verzi.
-const VERSION = 'filakalk-v1';
+// Po změně jakéhokoli souboru zvyšte VERSION, ať si zařízení stáhnou novou verzi.
+const VERSION = 'filakalk-v2';
 const SHELL = [
   './',
   './index.html',
@@ -29,6 +29,17 @@ self.addEventListener('activate', e => {
   );
 });
 
+// Z cache hned, na pozadí obnovit.
+function staleWhileRevalidate(req) {
+  return caches.match(req).then(hit => {
+    const net = fetch(req).then(res => {
+      if (res.ok || res.type === 'opaque') { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
+      return res;
+    }).catch(() => hit);
+    return hit || net;
+  });
+}
+
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
@@ -47,30 +58,8 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Vlastní soubory: z cache, na pozadí aktualizovat.
-  if (url.origin === location.origin) {
-    e.respondWith(
-      caches.match(req).then(hit => {
-        const net = fetch(req).then(res => {
-          if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
-          return res;
-        }).catch(() => hit);
-        return hit || net;
-      })
-    );
-    return;
-  }
-
-  // Písma Google: z cache, na pozadí aktualizovat (bez nich se použije systémové písmo).
-  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
-    e.respondWith(
-      caches.match(req).then(hit => {
-        const net = fetch(req).then(res => {
-          if (res.ok || res.type === 'opaque') { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
-          return res;
-        }).catch(() => hit);
-        return hit || net;
-      })
-    );
+  // Vlastní soubory a písma Google (bez nich se použije systémové písmo).
+  if (url.origin === location.origin || url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
+    e.respondWith(staleWhileRevalidate(req));
   }
 });
