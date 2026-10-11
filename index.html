@@ -66,6 +66,7 @@ input[type=color]::-webkit-color-swatch-wrapper{padding:0}input[type=color]::-we
 .ddl li{display:flex;align-items:center;gap:8px;padding:9px 8px;border-radius:6px;cursor:pointer}
 .ddl li:hover,.ddl li[aria-selected=true]{background:var(--bg)}
 .lowt{color:#c0392b;font-weight:700}
+.ver{color:var(--mut);font-size:.8rem;text-align:center;margin:22px 0 0}
 .lbl{display:block;margin-bottom:4px}
 .sel{display:flex;gap:8px;align-items:center}.sw{width:22px;height:22px;flex:0 0 22px;border-radius:50%;border:1px solid var(--line)}
 .btn{padding:9px 14px;border:1px solid var(--acc);background:transparent;color:var(--acc);border-radius:8px;font:inherit;cursor:pointer;margin-top:10px}
@@ -102,9 +103,11 @@ input.low{background:rgba(217,83,79,.2);border-color:#d9534f}
 <button role="tab" data-t="cat">Katalog filamentů</button>
 </div>
 <div id="app"></div>
+<p class="ver" id="ver"></p>
 <div id="mbar" hidden><span>Prodejní cena</span><b id="mp"></b></div>
 </div>
 <script>
+const APP_VERSION='1.1.0';
 const KEY='kalk3d_v1';
 const COMMON=[['h','Doba tisku – hodiny','h'],['m','Doba tisku – minuty','min'],['kwh','Naměřená spotřeba (volitelné)','kWh'],['w','Příkon tiskárny (když kWh = 0)','W'],['el','Cena elektřiny','Kč/kWh'],['am','Amortizace a opotřebení','Kč/h'],['ph','Příprava / postprocessing – hodiny','h'],['pm','Příprava / postprocessing – minuty','min'],['rate','Sazba práce','Kč/h'],['risk','Riziková přirážka','%'],['mar','Obchodní marže','%']];
 const DEF={tab:'single',mode:'markup',
@@ -249,8 +252,10 @@ function catView(app){
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;subMsg='';save();view()});
 view();
+const verEl=document.getElementById('ver');
+verEl.textContent='Filakalk verze '+APP_VERSION;
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){
- window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});
+ window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready).then(()=>{verEl.textContent='Filakalk verze '+APP_VERSION+' · funguje offline'}).catch(()=>{})});
 }
 </script>
 </body>
