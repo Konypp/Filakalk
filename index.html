@@ -255,7 +255,7 @@ view();
 const verEl=document.getElementById('ver');
 verEl.textContent='Filakalk verze '+APP_VERSION;
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){
- window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready).then(()=>{verEl.textContent='Filakalk verze '+APP_VERSION+' · funguje offline'}).catch(()=>{})});
+ window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});
 }
 </script>
 </body>
