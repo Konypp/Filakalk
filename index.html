@@ -107,7 +107,7 @@ input.low{background:rgba(217,83,79,.2);border-color:#d9534f}
 <div id="mbar" hidden><span>Prodejní cena</span><b id="mp"></b></div>
 </div>
 <script>
-const APP_VERSION='1.1.0';
+const APP_VERSION='1.2.0';
 const KEY='kalk3d_v1';
 const COMMON=[['h','Doba tisku – hodiny','h'],['m','Doba tisku – minuty','min'],['kwh','Naměřená spotřeba (volitelné)','kWh'],['w','Příkon tiskárny (když kWh = 0)','W'],['el','Cena elektřiny','Kč/kWh'],['am','Amortizace a opotřebení','Kč/h'],['ph','Příprava / postprocessing – hodiny','h'],['pm','Příprava / postprocessing – minuty','min'],['rate','Sazba práce','Kč/h'],['risk','Riziková přirážka','%'],['mar','Obchodní marže','%']];
 const DEF={tab:'single',mode:'markup',
@@ -168,6 +168,22 @@ function bindFields(d){
  document.querySelectorAll('[data-k]').forEach(el=>el.oninput=()=>{d[el.dataset.k]=el.value;clearMsg();save();result()});
 }
 let subMsg='';
+/* Převzetí ze SkicaCAD: ?from=skicacad&name=…&g=…&mat=PLA&pr=… (pr se použije, jen když typ není v katalogu) */
+(()=>{let q;try{q=new URLSearchParams(location.search)}catch(e){return}
+ if(q.get('from')!=='skicacad')return;
+ const g=N(q.get('g'));
+ if(g>0){
+  const d=S.single;S.tab='single';d.g=Math.round(g*10)/10;
+  const nm=String(q.get('name')||'').trim().slice(0,80);if(nm)d.name=nm;
+  const mat=String(q.get('mat')||'').trim().toLowerCase(),base=t=>String(t||'').toLowerCase().split(/[\s(]/)[0];
+  let i=mat?S.cat.findIndex(c=>String(c[1]).toLowerCase()===mat):-1;
+  if(i<0&&mat)i=S.cat.findIndex(c=>base(c[1])===base(mat));
+  if(i>=0){d.sel=String(i);d.pr=S.cat[i][3]}else{d.sel='';if(N(q.get('pr'))>0)d.pr=N(q.get('pr'))}
+  subMsg='Převzato ze SkicaCAD: '+d.g.toLocaleString('cs-CZ')+' g'+(i>=0?', filament '+S.cat[i][0]+' '+S.cat[i][1]:mat?', '+mat.toUpperCase()+' (není v katalogu, cena ze SkicaCAD)':'')+'. Dobu tisku doplňte ze sliceru.';
+  save();
+ }
+ try{history.replaceState(null,'',location.pathname)}catch(e){}
+})();
 const clearMsg=()=>{subMsg='';const m=document.getElementById('subm');if(m)m.textContent=''};
 const sigOf=()=>{const d=S[S.tab];const it=S.tab==='single'?[[d.sel,d.g]]:d.f.map(x=>[x.sel,x.g]);return JSON.stringify([String(d.name||'').trim(),it.map(([s,g])=>[s==null?'':String(s),N(g)])])};
 const refreshSub=()=>{const b=document.getElementById('sub');if(!b)return;const done=S[S.tab].sub===sigOf();b.disabled=done;b.textContent=done?'Odečteno ✓':'Odečíst z cívky'};

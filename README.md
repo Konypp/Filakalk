@@ -4,6 +4,7 @@
 - **Jednobarevný tisk** – z hmotnosti výtisku, ceny filamentu, doby tisku, elektřiny, amortizace stroje a práce spočítá výrobní náklady a prodejní cenu.
 - **Vícebarevný tisk (AMS)** – totéž pro až 4 cívky, každá s vlastní spotřebou a cenou za kg.
 - **Katalog filamentů** – seznam cívek (výrobce, typ, barva i dvoubarevná, cena za kg, zbývající hmotnost). Cívky s 100 g a méně se zvýrazní červeně.
+- **Převzetí ze SkicaCAD** – tlačítko „Otevřít ve Filakalku“ v SkicaCAD (Hmotnost a cena) otevře Filakalk s vyplněným názvem projektu a hmotností výtisku; filament se vybere z katalogu podle typu, jinak se převezme cena ze SkicaCAD. Dobu tisku doplníte ze sliceru.
 - **Odečet z cívky** – po dokončení tisku odečte spotřebovaný filament z katalogu, chrání před dvojitým odečtem.
 
 **Jak počítá cenu:** materiál + elektřina (z příkonu nebo naměřených kWh) + amortizace + práce, k tomu riziková přirážka a obchodní marže. Výsledek ukazuje velkou cenou, rozpadem v grafu a tabulkou jednotlivých položek.
