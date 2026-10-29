@@ -32,7 +32,8 @@ h1{margin:8px 0 4px;line-height:0;color:var(--ink)}.wm{height:46px;width:auto;di
 .tabs button[aria-selected=true]{background:var(--acc);color:var(--accink);border-color:var(--acc)}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .grid{display:grid;gap:14px;grid-template-columns:1fr}
-@media(min-width:860px){.grid{grid-template-columns:1.1fr .9fr;align-items:start}.res{position:sticky;top:12px}}
+@media(min-width:860px){td[data-label^="Cena"] input,td[data-label^="Hmotnost"] input{width:96px;min-width:0}
+.grid{grid-template-columns:1.1fr .9fr;align-items:start}.res{position:sticky;top:12px}}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
 .card h2{font-size:1.05rem;margin:0 0 10px}
 .f{display:grid;grid-template-columns:1fr 96px 56px;gap:8px;align-items:center;margin-bottom:8px}
@@ -167,7 +168,7 @@ input.low{background:rgba(217,83,79,.2);border-color:#d9534f}
 <div id="mbar" hidden><span>Prodejní cena</span><b id="mp"></b></div>
 </div>
 <script>
-const APP_VERSION='1.10.0';
+const APP_VERSION='1.10.1';
 const KEY='kalk3d_v1';
 const COMMON=[['h','Doba tisku – hodiny','h'],['m','Doba tisku – minuty','min'],['kwh','Naměřená spotřeba (volitelné)','kWh'],['w','Příkon tiskárny (když kWh = 0)','W'],['el','Cena elektřiny','Kč/kWh'],['am','Amortizace a opotřebení','Kč/h'],['ph','Příprava / postprocessing – hodiny','h'],['pm','Příprava / postprocessing – minuty','min'],['rate','Sazba práce','Kč/h'],['risk','Riziková přirážka','%'],['mar','Obchodní marže','%']];
 const DEF={tab:'single',mode:'markup',
