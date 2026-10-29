@@ -59,6 +59,10 @@ input[type=color]::-webkit-color-swatch-wrapper{padding:0}input[type=color]::-we
 .cc .btn{margin:0;padding:4px 8px;font-size:.85rem}
 .cc .btn[aria-pressed=true]{background:var(--acc);color:var(--accink)}
 .sortbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}.sortbar label{font-size:.92rem}.sortbar select{width:auto;flex:0 1 230px;min-width:0}.sortbar .btn{margin:0;padding:7px 12px}
+.pal{display:grid;grid-template-columns:repeat(5,26px);gap:6px;margin-top:6px}
+@media(max-width:859px){.pal{grid-template-columns:repeat(10,minmax(0,1fr));max-width:340px}}
+.pb{width:100%;aspect-ratio:1;min-width:26px;border-radius:50%;border:1px solid var(--line);padding:0;cursor:pointer}
+.pb[aria-pressed=true]{outline:2px solid var(--acc);outline-offset:2px}
 .cc2{display:flex;gap:6px;align-items:center;margin-top:6px}
 .cc2 .btn{margin:0;padding:4px 8px;font-size:.85rem}.cc2 .btn[aria-pressed=true]{background:var(--acc);color:var(--accink)}.cc2 select{min-width:0;flex:1 1 auto;width:auto}.cc2 .sw{width:28px;height:28px;flex:0 0 28px}
 .dd{position:relative;width:100%}
@@ -134,7 +138,7 @@ input.low{background:rgba(217,83,79,.2);border-color:#d9534f}
 <div id="mbar" hidden><span>Prodejní cena</span><b id="mp"></b></div>
 </div>
 <script>
-const APP_VERSION='1.6.0';
+const APP_VERSION='1.7.0';
 const KEY='kalk3d_v1';
 const COMMON=[['h','Doba tisku – hodiny','h'],['m','Doba tisku – minuty','min'],['kwh','Naměřená spotřeba (volitelné)','kWh'],['w','Příkon tiskárny (když kWh = 0)','W'],['el','Cena elektřiny','Kč/kWh'],['am','Amortizace a opotřebení','Kč/h'],['ph','Příprava / postprocessing – hodiny','h'],['pm','Příprava / postprocessing – minuty','min'],['rate','Sazba práce','Kč/h'],['risk','Riziková přirážka','%'],['mar','Obchodní marže','%']];
 const DEF={tab:'single',mode:'markup',
@@ -334,13 +338,15 @@ const selCell=(c,i,j)=>{
  return `<select data-cs="${i}" data-cj="${j}" aria-label="${j===0?'Výrobce':'Typ'}"><option value="">Vybrat…</option>${list.map(x=>`<option${x===v?' selected':''}>${esc(x)}</option>`).join('')}${v&&!list.includes(v)?`<option selected>${esc(v)}</option>`:''}<option value="__other">Jiný…</option></select>`;
 };
 const colorCell=(c,i)=>c[4]
- ?`<div class="cc"><div class="duo"><input data-ci="${i}" data-cj="2" type="color" aria-label="Levá půlka" value="${c[2]}"><input data-ci="${i}" data-cj="4" type="color" aria-label="Pravá půlka" value="${c[4]}"></div><button class="btn" data-c2off="${i}" aria-pressed="true" title="Dvě barvy zapnuty – klepnutím vrátíte jednu barvu" aria-label="Dělení barvy je zapnuté">½</button></div>${metalRow(c,i)}`
- :`<div class="cc"><input class="one" data-ci="${i}" data-cj="2" type="color" aria-label="Barva" value="${c[2]}"><button class="btn" data-c2on="${i}" aria-pressed="false" title="Rozdělit na dvě barvy" aria-label="Dělení barvy je vypnuté">½</button></div>${metalRow(c,i)}`;
+ ?`<div class="cc"><div class="duo"><input data-ci="${i}" data-cj="2" type="color" aria-label="Levá půlka" value="${c[2]}"><input data-ci="${i}" data-cj="4" type="color" aria-label="Pravá půlka" value="${c[4]}"></div><button class="btn" data-c2off="${i}" aria-pressed="true" title="Dvě barvy zapnuty – klepnutím vrátíte jednu barvu" aria-label="Dělení barvy je zapnuté">½</button></div>${palRow(c,i)}${metalRow(c,i)}`
+ :`<div class="cc"><input class="one" data-ci="${i}" data-cj="2" type="color" aria-label="Barva" value="${c[2]}"><button class="btn" data-c2on="${i}" aria-pressed="false" title="Rozdělit na dvě barvy" aria-label="Dělení barvy je vypnuté">½</button></div>${palRow(c,i)}${metalRow(c,i)}`;
+const PAL=[['Černá','#1a1a1a'],['Bílá','#f2f2f2'],['Šedá','#8a8f94'],['Červená','#e53b2e'],['Oranžová','#f29b3e'],['Žlutá','#f7d117'],['Zelená','#3fa34d'],['Modrá','#2f6fd0'],['Fialová','#8a5bd0'],['Hnědá','#8b5a2b']];
+const palRow=(c,i)=>`<div class="pal" role="group" aria-label="Základní barvy">${PAL.map(([n,h])=>`<button type="button" class="pb" data-pal="${i}" data-hex="${h}" title="${n}" aria-label="${n}" aria-pressed="${String(c[2]).toLowerCase()===h}" style="background:${h}"></button>`).join('')}</div>`;
 const metalRow=(c,i)=>`<div class="cc2"><select data-mp="${i}" aria-label="Kovový odstín"><option value="">Kovové odstíny…</option>${METALS.map((m,k)=>`<option value="${k}">${m[0]}</option>`).join('')}</select><button class="btn" data-met="${i}" aria-pressed="${c[6]?'true':'false'}" title="Kovový lesk – ${c[6]?'zapnutý':'vypnutý'}" aria-label="Kovový lesk ${c[6]?'zapnutý':'vypnutý'}">kov</button>${c[6]?`<span class="sw" style="background:${sw(i)}" aria-hidden="true"></span>`:''}</div>`;
 function catView(app){
  app.innerHTML=`<div class="card"><h2>Katalog filamentů</h2><div class="sortbar"><label for="catsort">Řadit podle</label><select id="catsort">${SORTS.map(([k,l])=>`<option value="${k}"${(S.catSort&&S.catSort.by||'manual')===k?' selected':''}>${l}</option>`).join('')}</select><button class="btn" id="catdir" type="button"${(S.catSort&&S.catSort.by||'manual')==='manual'?' disabled':''} aria-label="Směr řazení">${S.catSort&&S.catSort.dir<0?'↓ Sestupně':'↑ Vzestupně'}</button></div><div class="tw"><table><thead><tr><th>Výrobce</th><th>Typ</th><th>Barva</th><th>Kč/kg</th><th>Hmotnost (g)</th><th></th></tr></thead><tbody>`+
  catOrder(catPin).map(i=>{const c=S.cat[i];return `<tr>${[0,1,2,3,5].map(j=>j===2?`<td data-label="Barva">${colorCell(c,i)}</td>`:j<2?`<td data-label="${j?'Typ':'Výrobce'}">${selCell(c,i,j)}</td>`:`<td data-label="${j===5?'Hmotnost (g)':'Cena (Kč/kg)'}"><input data-ci="${i}" data-cj="${j}" value="${esc(j===5?(c[5]??''):c[j])}" inputmode="decimal"${j===5&&isLow(c[5])?' class="low"':''}></td>`).join('')}<td class="x"><button class="btn" style="margin:0;padding:5px 9px" data-del="${i}" aria-label="Smazat řádek"><span aria-hidden="true">×</span><span class="dl"> Smazat</span></button></td></tr>`}).join('')+
- `</tbody></table></div><button class="btn" id="add">Přidat filament</button><p class="note">Ceny z katalogu se použijí ve výběru cívek na kartě Vícebarevný (AMS). Hmotnost (g) je množství filamentu na cívce; při 100 g a méně se pole podbarví červeně. Tlačítko „kov“ přidá vzorku kovový lesk, hotové odstíny najdete v nabídce „Kovové odstíny“. Řazení se použije při dalším zobrazení katalogu, ne během psaní do pole. Řazení je jen pro zobrazení, pořadí cívek se nemění.</p></div>`;
+ `</tbody></table></div><button class="btn" id="add">Přidat filament</button><p class="note">Ceny z katalogu se použijí ve výběru cívek na kartě Vícebarevný (AMS). Hmotnost (g) je množství filamentu na cívce; při 100 g a méně se pole podbarví červeně. Pod výběrem barvy je deset základních barev na jedno klepnutí (u dvoubarevného filamentu mění levou půlku). Tlačítko „kov“ přidá vzorku kovový lesk, hotové odstíny najdete v nabídce „Kovové odstíny“. Řazení se použije při dalším zobrazení katalogu, ne během psaní do pole. Řazení je jen pro zobrazení, pořadí cívek se nemění.</p></div>`;
  app.querySelectorAll('[data-ci]').forEach(el=>el.oninput=()=>{S.cat[el.dataset.ci][el.dataset.cj]=el.dataset.cj==='3'?N(el.value):el.value;if(el.dataset.cj==='5')el.classList.toggle('low',isLow(el.value));save()});
  app.querySelectorAll('[data-cs]').forEach(el=>el.onchange=()=>{
   const i=el.dataset.cs,j=el.dataset.cj;
@@ -351,6 +357,7 @@ function catView(app){
  app.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{S.cat.splice(b.dataset.del,1);catPin=null;save();view()});
  document.getElementById('catsort').onchange=e=>{S.catSort={by:e.target.value,dir:(S.catSort&&S.catSort.dir)||1};catPin=null;save();view()};
  document.getElementById('catdir').onclick=()=>{const cs=S.catSort||{by:'manual',dir:1};S.catSort={by:cs.by,dir:cs.dir<0?1:-1};catPin=null;save();view()};
+ app.querySelectorAll('[data-pal]').forEach(b=>b.onclick=()=>{S.cat[b.dataset.pal][2]=b.dataset.hex;save();view()});
  app.querySelectorAll('[data-met]').forEach(b=>b.onclick=()=>{const c=S.cat[b.dataset.met];c[6]=c[6]?'':'1';save();view()});
  app.querySelectorAll('[data-mp]').forEach(el=>el.onchange=()=>{
   if(el.value==='')return;
