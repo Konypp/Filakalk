@@ -1,6 +1,6 @@
 // Filakalk service worker – offline použití aplikace.
 // Po změně jakéhokoli souboru zvyšte VERSION, ať si zařízení stáhnou novou verzi.
-const APP_VERSION = '1.2.0'; // musí odpovídat APP_VERSION v index.html
+const APP_VERSION = '1.3.0'; // musí odpovídat APP_VERSION v index.html
 const VERSION = 'filakalk-' + APP_VERSION;
 const SHELL = [
   './',
@@ -11,7 +11,8 @@ const SHELL = [
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png',
-  './icons/favicon-32.png'
+  './icons/favicon-32.png',
+  './vendor/firebase.js'
 ];
 
 self.addEventListener('install', e => {
