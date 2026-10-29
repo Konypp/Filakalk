@@ -58,6 +58,7 @@ input[type=color]::-webkit-color-swatch-wrapper{padding:0}input[type=color]::-we
 .duo{display:flex;width:72px;height:34px;border:1px solid var(--line);border-radius:6px;overflow:hidden}.duo input{min-width:0;width:50%;border-radius:0}
 .cc .btn{margin:0;padding:4px 8px;font-size:.85rem}
 .cc .btn[aria-pressed=true]{background:var(--acc);color:var(--accink)}
+.sortbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}.sortbar label{font-size:.92rem}.sortbar select{width:auto;flex:0 1 230px;min-width:0}.sortbar .btn{margin:0;padding:7px 12px}
 .cc2{display:flex;gap:6px;align-items:center;margin-top:6px}
 .cc2 .btn{margin:0;padding:4px 8px;font-size:.85rem}.cc2 .btn[aria-pressed=true]{background:var(--acc);color:var(--accink)}.cc2 select{min-width:0;flex:1 1 auto;width:auto}.cc2 .sw{width:28px;height:28px;flex:0 0 28px}
 .dd{position:relative;width:100%}
@@ -133,7 +134,7 @@ input.low{background:rgba(217,83,79,.2);border-color:#d9534f}
 <div id="mbar" hidden><span>Prodejní cena</span><b id="mp"></b></div>
 </div>
 <script>
-const APP_VERSION='1.5.0';
+const APP_VERSION='1.6.0';
 const KEY='kalk3d_v1';
 const COMMON=[['h','Doba tisku – hodiny','h'],['m','Doba tisku – minuty','min'],['kwh','Naměřená spotřeba (volitelné)','kWh'],['w','Příkon tiskárny (když kWh = 0)','W'],['el','Cena elektřiny','Kč/kWh'],['am','Amortizace a opotřebení','Kč/h'],['ph','Příprava / postprocessing – hodiny','h'],['pm','Příprava / postprocessing – minuty','min'],['rate','Sazba práce','Kč/h'],['risk','Riziková přirážka','%'],['mar','Obchodní marže','%']];
 const DEF={tab:'single',mode:'markup',
@@ -150,7 +151,44 @@ const METALS=[['Zlatá','#d4af37'],['Stříbrná','#c0c0c0'],['Měděná','#b873
 const sw=sel=>{const c=sel!==''&&sel!=null&&S.cat[sel];if(!c)return'transparent';const base=c[4]?`linear-gradient(90deg,${c[2]} 50%,${c[4]} 50%)`:c[2];return c[6]?METAL+','+base:base};
 const wTxt=c=>c[5]!==''&&c[5]!=null?` · <span${isLow(c[5])?' class="lowt"':''}>${esc(c[5])} g</span>`:'';
 const ddText=v=>{const c=v!==''&&v!=null&&S.cat[v];return c?esc(c[0]+' '+c[1])+' – '+c[3]+' Kč'+wTxt(c):'Vybrat z katalogu…'};
-const ddHTML=(id,v)=>`<div class="dd" data-dd="${id}"><button type="button" class="ddb" aria-haspopup="listbox" aria-expanded="false"><span class="sw" style="background:${sw(v)}"></span><span class="t">${ddText(v)}</span><span aria-hidden="true">▾</span></button><ul class="ddl" role="listbox" hidden><li role="option" data-v="" aria-selected="${v===''||v==null}"><span class="sw" style="background:transparent"></span>Vybrat z katalogu…</li>${S.cat.map((c,i)=>`<li role="option" data-v="${i}" aria-selected="${String(v)===String(i)}"><span class="sw" style="background:${sw(i)}"></span>${esc(c[0]+' '+c[1])} – ${c[3]} Kč${wTxt(c)}</li>`).join('')}</ul></div>`;
+const SORTS=[['manual','Ručně (pořadí v katalogu)'],['brand','Výrobce'],['type','Typ'],['color','Barva (odstín)'],['price','Cena za kg'],['weight','Zbývající hmotnost']];
+let catPin=null;
+function catOrder(pin){
+ const cs=S.catSort||{by:'manual',dir:1};
+ const idx=S.cat.map((c,i)=>i);
+ if(cs.by==='manual')return idx;
+ const col=new Intl.Collator('cs',{numeric:true,sensitivity:'base'});
+ const colKey=hex=>{
+  const m=/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex||'');if(!m)return null;
+  const r=parseInt(m[1],16)/255,g=parseInt(m[2],16)/255,b=parseInt(m[3],16)/255;
+  const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,d=mx-mn;
+  const sat=d===0?0:d/(1-Math.abs(2*l-1));
+  if(sat<.12)return 400+(1-l)*100;
+  let h=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4;h*=60;if(h<0)h+=360;return h;
+ };
+ const val=c=>{
+  switch(cs.by){
+   case'brand':return String(c[0]||'').trim()||null;
+   case'type':return String(c[1]||'').trim()||null;
+   case'price':return N(c[3])>0?N(c[3]):null;
+   case'weight':return c[5]===''||c[5]==null?null:N(c[5]);
+   case'color':return colKey(c[2]);
+  }
+ };
+ const cmpv=(a,b)=>typeof a==='string'?col.compare(a,b):a-b;
+ const rest=idx.filter(i=>i!==pin);
+ rest.sort((a,b)=>{
+  const va=val(S.cat[a]),vb=val(S.cat[b]);
+  if(va==null&&vb==null){}
+  else if(va==null)return 1;
+  else if(vb==null)return -1;
+  else{const r=cmpv(va,vb);if(r)return r*(cs.dir<0?-1:1)}
+  return col.compare(String(S.cat[a][0]||''),String(S.cat[b][0]||''))||col.compare(String(S.cat[a][1]||''),String(S.cat[b][1]||''))||a-b;
+ });
+ if(pin!=null&&pin>=0&&pin<S.cat.length)rest.push(pin);
+ return rest;
+}
+const ddHTML=(id,v)=>`<div class="dd" data-dd="${id}"><button type="button" class="ddb" aria-haspopup="listbox" aria-expanded="false"><span class="sw" style="background:${sw(v)}"></span><span class="t">${ddText(v)}</span><span aria-hidden="true">▾</span></button><ul class="ddl" role="listbox" hidden><li role="option" data-v="" aria-selected="${v===''||v==null}"><span class="sw" style="background:transparent"></span>Vybrat z katalogu…</li>${catOrder().map(i=>{const c=S.cat[i];return `<li role="option" data-v="${i}" aria-selected="${String(v)===String(i)}"><span class="sw" style="background:${sw(i)}"></span>${esc(c[0]+' '+c[1])} – ${c[3]} Kč${wTxt(c)}</li>`}).join('')}</ul></div>`;
 const ddSet=(id,v)=>{const e=document.querySelector('[data-dd="'+id+'"]');if(!e)return;e.querySelector('.ddb .sw').style.background=sw(v);e.querySelector('.ddb .t').innerHTML=ddText(v)};
 let onPick=()=>{};
 document.addEventListener('click',e=>{
@@ -300,9 +338,9 @@ const colorCell=(c,i)=>c[4]
  :`<div class="cc"><input class="one" data-ci="${i}" data-cj="2" type="color" aria-label="Barva" value="${c[2]}"><button class="btn" data-c2on="${i}" aria-pressed="false" title="Rozdělit na dvě barvy" aria-label="Dělení barvy je vypnuté">½</button></div>${metalRow(c,i)}`;
 const metalRow=(c,i)=>`<div class="cc2"><select data-mp="${i}" aria-label="Kovový odstín"><option value="">Kovové odstíny…</option>${METALS.map((m,k)=>`<option value="${k}">${m[0]}</option>`).join('')}</select><button class="btn" data-met="${i}" aria-pressed="${c[6]?'true':'false'}" title="Kovový lesk – ${c[6]?'zapnutý':'vypnutý'}" aria-label="Kovový lesk ${c[6]?'zapnutý':'vypnutý'}">kov</button>${c[6]?`<span class="sw" style="background:${sw(i)}" aria-hidden="true"></span>`:''}</div>`;
 function catView(app){
- app.innerHTML=`<div class="card"><h2>Katalog filamentů</h2><div class="tw"><table><thead><tr><th>Výrobce</th><th>Typ</th><th>Barva</th><th>Kč/kg</th><th>Hmotnost (g)</th><th></th></tr></thead><tbody>`+
- S.cat.map((c,i)=>`<tr>${[0,1,2,3,5].map(j=>j===2?`<td data-label="Barva">${colorCell(c,i)}</td>`:j<2?`<td data-label="${j?'Typ':'Výrobce'}">${selCell(c,i,j)}</td>`:`<td data-label="${j===5?'Hmotnost (g)':'Cena (Kč/kg)'}"><input data-ci="${i}" data-cj="${j}" value="${esc(j===5?(c[5]??''):c[j])}" inputmode="decimal"${j===5&&isLow(c[5])?' class="low"':''}></td>`).join('')}<td class="x"><button class="btn" style="margin:0;padding:5px 9px" data-del="${i}" aria-label="Smazat řádek"><span aria-hidden="true">×</span><span class="dl"> Smazat</span></button></td></tr>`).join('')+
- `</tbody></table></div><button class="btn" id="add">Přidat filament</button><p class="note">Ceny z katalogu se použijí ve výběru cívek na kartě Vícebarevný (AMS). Hmotnost (g) je množství filamentu na cívce; při 100 g a méně se pole podbarví červeně. Tlačítko „kov“ přidá vzorku kovový lesk, hotové odstíny najdete v nabídce „Kovové odstíny“.</p></div>`;
+ app.innerHTML=`<div class="card"><h2>Katalog filamentů</h2><div class="sortbar"><label for="catsort">Řadit podle</label><select id="catsort">${SORTS.map(([k,l])=>`<option value="${k}"${(S.catSort&&S.catSort.by||'manual')===k?' selected':''}>${l}</option>`).join('')}</select><button class="btn" id="catdir" type="button"${(S.catSort&&S.catSort.by||'manual')==='manual'?' disabled':''} aria-label="Směr řazení">${S.catSort&&S.catSort.dir<0?'↓ Sestupně':'↑ Vzestupně'}</button></div><div class="tw"><table><thead><tr><th>Výrobce</th><th>Typ</th><th>Barva</th><th>Kč/kg</th><th>Hmotnost (g)</th><th></th></tr></thead><tbody>`+
+ catOrder(catPin).map(i=>{const c=S.cat[i];return `<tr>${[0,1,2,3,5].map(j=>j===2?`<td data-label="Barva">${colorCell(c,i)}</td>`:j<2?`<td data-label="${j?'Typ':'Výrobce'}">${selCell(c,i,j)}</td>`:`<td data-label="${j===5?'Hmotnost (g)':'Cena (Kč/kg)'}"><input data-ci="${i}" data-cj="${j}" value="${esc(j===5?(c[5]??''):c[j])}" inputmode="decimal"${j===5&&isLow(c[5])?' class="low"':''}></td>`).join('')}<td class="x"><button class="btn" style="margin:0;padding:5px 9px" data-del="${i}" aria-label="Smazat řádek"><span aria-hidden="true">×</span><span class="dl"> Smazat</span></button></td></tr>`}).join('')+
+ `</tbody></table></div><button class="btn" id="add">Přidat filament</button><p class="note">Ceny z katalogu se použijí ve výběru cívek na kartě Vícebarevný (AMS). Hmotnost (g) je množství filamentu na cívce; při 100 g a méně se pole podbarví červeně. Tlačítko „kov“ přidá vzorku kovový lesk, hotové odstíny najdete v nabídce „Kovové odstíny“. Řazení se použije při dalším zobrazení katalogu, ne během psaní do pole. Řazení je jen pro zobrazení, pořadí cívek se nemění.</p></div>`;
  app.querySelectorAll('[data-ci]').forEach(el=>el.oninput=()=>{S.cat[el.dataset.ci][el.dataset.cj]=el.dataset.cj==='3'?N(el.value):el.value;if(el.dataset.cj==='5')el.classList.toggle('low',isLow(el.value));save()});
  app.querySelectorAll('[data-cs]').forEach(el=>el.onchange=()=>{
   const i=el.dataset.cs,j=el.dataset.cj;
@@ -310,7 +348,9 @@ function catView(app){
   S.cat[i][j]=el.value;save();
  });
  app.querySelectorAll('[data-ed]').forEach(el=>{el.onblur=()=>{delete ED[el.dataset.ed];view()};el.focus()});
- app.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{S.cat.splice(b.dataset.del,1);save();view()});
+ app.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{S.cat.splice(b.dataset.del,1);catPin=null;save();view()});
+ document.getElementById('catsort').onchange=e=>{S.catSort={by:e.target.value,dir:(S.catSort&&S.catSort.dir)||1};catPin=null;save();view()};
+ document.getElementById('catdir').onclick=()=>{const cs=S.catSort||{by:'manual',dir:1};S.catSort={by:cs.by,dir:cs.dir<0?1:-1};catPin=null;save();view()};
  app.querySelectorAll('[data-met]').forEach(b=>b.onclick=()=>{const c=S.cat[b.dataset.met];c[6]=c[6]?'':'1';save();view()});
  app.querySelectorAll('[data-mp]').forEach(el=>el.onchange=()=>{
   if(el.value==='')return;
@@ -319,9 +359,9 @@ function catView(app){
  });
  app.querySelectorAll('[data-c2on]').forEach(b=>b.onclick=()=>{S.cat[b.dataset.c2on][4]=S.cat[b.dataset.c2on][2];save();view()});
  app.querySelectorAll('[data-c2off]').forEach(b=>b.onclick=()=>{S.cat[b.dataset.c2off][4]='';save();view()});
- document.getElementById('add').onclick=()=>{S.cat.push(['','','#9aa0a6',0,'','']);save();view()};
+ document.getElementById('add').onclick=()=>{S.cat.push(['','','#9aa0a6',0,'','']);catPin=S.cat.length-1;save();view()};
 }
-document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;subMsg='';save();view()});
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;subMsg='';catPin=null;save();view()});
 view();
 const verEl=document.getElementById('ver');
 verEl.textContent='Filakalk verze '+APP_VERSION;
