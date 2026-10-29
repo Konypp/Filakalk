@@ -32,7 +32,7 @@ h1{margin:8px 0 4px;line-height:0;color:var(--ink)}.wm{height:46px;width:auto;di
 .tabs button[aria-selected=true]{background:var(--acc);color:var(--accink);border-color:var(--acc)}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .grid{display:grid;gap:14px;grid-template-columns:1fr}
-@media(min-width:860px){td[data-label^="Cena"] input,td[data-label^="Hmotnost"] input{width:96px;min-width:0}
+@media(min-width:860px){td[data-label^="Cena"] input,td[data-label^="Hmotnost"] input{width:72px;min-width:0}
 .grid{grid-template-columns:1.1fr .9fr;align-items:start}.res{position:sticky;top:12px}}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
 .card h2{font-size:1.05rem;margin:0 0 10px}
@@ -53,7 +53,7 @@ input,select{width:100%;padding:8px;border:1px solid var(--line);border-radius:6
 table{width:100%;border-collapse:collapse}
 .tw{overflow-x:auto}
 td,th{padding:5px 4px;text-align:left;font-size:.88rem}th{color:var(--mut);font-weight:500}
-td input{min-width:80px}td input[type=color],.duo input{padding:0;border:0;background:none;cursor:pointer;height:34px}
+td input{min-width:80px}td[data-label^="Cena"] input,td[data-label^="Hmotnost"] input{text-align:right}td input[type=color],.duo input{padding:0;border:0;background:none;cursor:pointer;height:34px}
 input[type=color]::-webkit-color-swatch-wrapper{padding:0}input[type=color]::-webkit-color-swatch{border:0}input[type=color]::-moz-color-swatch{border:0}
 .cc{display:flex;gap:6px;align-items:center}.cc .one{min-width:0;width:72px;border:1px solid var(--line);border-radius:6px}
 .duo{display:flex;width:72px;height:34px;border:1px solid var(--line);border-radius:6px;overflow:hidden}.duo input{min-width:0;width:50%;border-radius:0}
@@ -168,7 +168,7 @@ input.low{background:rgba(217,83,79,.2);border-color:#d9534f}
 <div id="mbar" hidden><span>Prodejní cena</span><b id="mp"></b></div>
 </div>
 <script>
-const APP_VERSION='1.10.1';
+const APP_VERSION='1.10.2';
 const KEY='kalk3d_v1';
 const COMMON=[['h','Doba tisku – hodiny','h'],['m','Doba tisku – minuty','min'],['kwh','Naměřená spotřeba (volitelné)','kWh'],['w','Příkon tiskárny (když kWh = 0)','W'],['el','Cena elektřiny','Kč/kWh'],['am','Amortizace a opotřebení','Kč/h'],['ph','Příprava / postprocessing – hodiny','h'],['pm','Příprava / postprocessing – minuty','min'],['rate','Sazba práce','Kč/h'],['risk','Riziková přirážka','%'],['mar','Obchodní marže','%']];
 const DEF={tab:'single',mode:'markup',
