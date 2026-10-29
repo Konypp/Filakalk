@@ -1,6 +1,6 @@
 // Filakalk service worker – offline použití aplikace.
 // Po změně jakéhokoli souboru zvyšte VERSION, ať si zařízení stáhnou novou verzi.
-const APP_VERSION = '1.11.0'; // musí odpovídat APP_VERSION v index.html
+const APP_VERSION = '1.11.1'; // musí odpovídat APP_VERSION v index.html
 const VERSION = 'filakalk-' + APP_VERSION;
 const SHELL = [
   './',
