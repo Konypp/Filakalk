@@ -59,12 +59,25 @@ input[type=color]::-webkit-color-swatch-wrapper{padding:0}input[type=color]::-we
 .cc .btn{margin:0;padding:4px 8px;font-size:.85rem}
 .cc .btn[aria-pressed=true]{background:var(--acc);color:var(--accink)}
 .sortbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}.sortbar label{font-size:.92rem}.sortbar select{width:auto;flex:0 1 230px;min-width:0}.sortbar .btn{margin:0;padding:7px 12px}
-.pal{display:grid;grid-template-columns:repeat(5,26px);gap:6px;margin-top:6px}
-@media(max-width:859px){.pal{grid-template-columns:repeat(10,minmax(0,1fr));max-width:340px}}
-.pb{width:100%;aspect-ratio:1;min-width:26px;border-radius:50%;border:1px solid var(--line);padding:0;cursor:pointer}
+.colbtn{display:flex;align-items:center;gap:10px;width:100%;min-width:150px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.colbtn .sw{width:26px;height:26px;flex:0 0 26px}
+.colbtn .cname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.9rem}
+.colbtn[aria-expanded=true]{border-color:var(--acc)}
+.palpop{position:fixed;z-index:60;width:292px;max-width:calc(100vw - 24px);max-height:calc(100vh - 24px);overflow:auto;padding:12px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.28)}
+.palpop[hidden]{display:none}
+.palpop .pp-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.palpop .pp-x{border:0;background:none;color:var(--mut);font:inherit;font-size:1.4rem;line-height:1;cursor:pointer;padding:0 6px}
+.palpop .pp-s{color:var(--mut);font-size:.8rem;margin:10px 0 6px}
+.palpop .pp-seg{display:flex;gap:6px;margin-bottom:4px}
+.palpop .pp-seg .btn{flex:1;margin:0;padding:6px 8px;font-size:.88rem}
+.palpop .btn[aria-pressed=true]{background:var(--acc);color:var(--accink)}
+.pal{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.pb{width:100%;aspect-ratio:1;border-radius:50%;border:1px solid var(--line);padding:0;cursor:pointer}
 .pb[aria-pressed=true]{outline:2px solid var(--acc);outline-offset:2px}
-.cc2{display:flex;gap:6px;align-items:center;margin-top:6px}
-.cc2 .btn{margin:0;padding:4px 8px;font-size:.85rem}.cc2 .btn[aria-pressed=true]{background:var(--acc);color:var(--accink)}.cc2 select{min-width:0;flex:1 1 auto;width:auto}.cc2 .sw{width:28px;height:28px;flex:0 0 28px}
+.palpop .pp-a{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+.palpop .pp-a .btn{margin:0;padding:6px 10px;font-size:.88rem}
+.palpop .pp-cust{display:flex;align-items:center;gap:8px;font-size:.88rem}
+.palpop .pp-cust input{width:42px;height:32px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer}
 .dd{position:relative;width:100%}
 .ddb{display:flex;align-items:center;gap:8px;width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
 .ddb .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -135,10 +148,11 @@ input.low{background:rgba(217,83,79,.2);border-color:#d9534f}
 </div>
 <div id="app"></div>
 <p class="ver" id="ver"></p>
+<div class="palpop" id="palpop" role="dialog" aria-label="Výběr barvy" hidden></div>
 <div id="mbar" hidden><span>Prodejní cena</span><b id="mp"></b></div>
 </div>
 <script>
-const APP_VERSION='1.7.0';
+const APP_VERSION='1.8.0';
 const KEY='kalk3d_v1';
 const COMMON=[['h','Doba tisku – hodiny','h'],['m','Doba tisku – minuty','min'],['kwh','Naměřená spotřeba (volitelné)','kWh'],['w','Příkon tiskárny (když kWh = 0)','W'],['el','Cena elektřiny','Kč/kWh'],['am','Amortizace a opotřebení','Kč/h'],['ph','Příprava / postprocessing – hodiny','h'],['pm','Příprava / postprocessing – minuty','min'],['rate','Sazba práce','Kč/h'],['risk','Riziková přirážka','%'],['mar','Obchodní marže','%']];
 const DEF={tab:'single',mode:'markup',
@@ -295,6 +309,7 @@ function subtract(items){
  save();view();
 }
 function view(){
+ if(S.tab!=='cat'&&typeof closePal==='function')closePal();
  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===S.tab));
  document.getElementById('mbar').hidden=S.tab==='cat';
  const app=document.getElementById('app');
@@ -337,16 +352,81 @@ const selCell=(c,i,j)=>{
  if(ED[k])return `<input data-ci="${i}" data-cj="${j}" data-ed="${k}" aria-label="${j===0?'Výrobce':'Typ'}" value="${esc(v)}">`;
  return `<select data-cs="${i}" data-cj="${j}" aria-label="${j===0?'Výrobce':'Typ'}"><option value="">Vybrat…</option>${list.map(x=>`<option${x===v?' selected':''}>${esc(x)}</option>`).join('')}${v&&!list.includes(v)?`<option selected>${esc(v)}</option>`:''}<option value="__other">Jiný…</option></select>`;
 };
-const colorCell=(c,i)=>c[4]
- ?`<div class="cc"><div class="duo"><input data-ci="${i}" data-cj="2" type="color" aria-label="Levá půlka" value="${c[2]}"><input data-ci="${i}" data-cj="4" type="color" aria-label="Pravá půlka" value="${c[4]}"></div><button class="btn" data-c2off="${i}" aria-pressed="true" title="Dvě barvy zapnuty – klepnutím vrátíte jednu barvu" aria-label="Dělení barvy je zapnuté">½</button></div>${palRow(c,i)}${metalRow(c,i)}`
- :`<div class="cc"><input class="one" data-ci="${i}" data-cj="2" type="color" aria-label="Barva" value="${c[2]}"><button class="btn" data-c2on="${i}" aria-pressed="false" title="Rozdělit na dvě barvy" aria-label="Dělení barvy je vypnuté">½</button></div>${palRow(c,i)}${metalRow(c,i)}`;
 const PAL=[['Černá','#1a1a1a'],['Bílá','#f2f2f2'],['Šedá','#8a8f94'],['Červená','#e53b2e'],['Oranžová','#f29b3e'],['Žlutá','#f7d117'],['Zelená','#3fa34d'],['Modrá','#2f6fd0'],['Fialová','#8a5bd0'],['Hnědá','#8b5a2b']];
-const palRow=(c,i)=>`<div class="pal" role="group" aria-label="Základní barvy">${PAL.map(([n,h])=>`<button type="button" class="pb" data-pal="${i}" data-hex="${h}" title="${n}" aria-label="${n}" aria-pressed="${String(c[2]).toLowerCase()===h}" style="background:${h}"></button>`).join('')}</div>`;
-const metalRow=(c,i)=>`<div class="cc2"><select data-mp="${i}" aria-label="Kovový odstín"><option value="">Kovové odstíny…</option>${METALS.map((m,k)=>`<option value="${k}">${m[0]}</option>`).join('')}</select><button class="btn" data-met="${i}" aria-pressed="${c[6]?'true':'false'}" title="Kovový lesk – ${c[6]?'zapnutý':'vypnutý'}" aria-label="Kovový lesk ${c[6]?'zapnutý':'vypnutý'}">kov</button>${c[6]?`<span class="sw" style="background:${sw(i)}" aria-hidden="true"></span>`:''}</div>`;
+const hexName=h=>{h=String(h||'').toLowerCase();const m=PAL.concat(METALS).find(x=>x[1]===h);return m?m[0]:h.toUpperCase()};
+const colLabel=c=>{const a=hexName(c[2]);const n=c[4]?a+' / '+hexName(c[4]):a;return c[6]?n+' · kov':n};
+const colorCell=(c,i)=>`<button type="button" class="colbtn" data-colbtn="${i}" aria-haspopup="dialog" aria-expanded="${palIdx===i}" aria-label="Barva: ${esc(colLabel(c))}. Změnit"><span class="sw" style="background:${sw(i)}"></span><span class="cname">${esc(colLabel(c))}</span><span aria-hidden="true">▾</span></button>`;
+
+/* Paleta barev: otevře se po klepnutí na barvu u řádku katalogu */
+let palIdx=null,palSide=2;
+const palEl=()=>document.getElementById('palpop');
+function closePal(){palIdx=null;const e=palEl();if(e)e.hidden=true;document.querySelectorAll('[data-colbtn]').forEach(b=>b.setAttribute('aria-expanded','false'))}
+function palSwatch(hex,metal,cur,attrs){return `<button type="button" class="pb" ${attrs} title="${esc(hexName(hex))}${metal?' (kov)':''}" aria-label="${esc(hexName(hex))}${metal?' (kov)':''}" aria-pressed="${cur}" style="background:${metal?METAL+','+hex:hex}"></button>`}
+function palRender(){
+ const c=S.cat[palIdx];if(!c){closePal();return}
+ const e=palEl(),duo=!!c[4],cur=String(c[palSide===4&&duo?4:2]||'').toLowerCase(),metal=!!c[6];
+ e.innerHTML=`<div class="pp-h"><b>Barva</b><button type="button" class="pp-x" data-ppx aria-label="Zavřít">×</button></div>`+
+ (duo?`<div class="pp-seg" role="group" aria-label="Která půlka"><button type="button" class="btn" data-ppside="2" aria-pressed="${palSide!==4}">Levá půlka</button><button type="button" class="btn" data-ppside="4" aria-pressed="${palSide===4}">Pravá půlka</button></div>`:'')+
+ `<div class="pp-s">Základní barvy</div><div class="pal">${PAL.map(([n,h])=>palSwatch(h,false,cur===h&&!metal,`data-ppc="${h}"`)).join('')}</div>`+
+ `<div class="pp-s">Kovové odstíny</div><div class="pal">${METALS.map(([n,h])=>palSwatch(h,true,cur===h&&metal,`data-ppm="${h}"`)).join('')}</div>`+
+ `<div class="pp-a"><label class="pp-cust">Vlastní<input type="color" id="ppcustom" aria-label="Vlastní barva" value="${esc(c[palSide===4&&duo?4:2]||'#9aa0a6')}"></label><button type="button" class="btn" data-ppmetal aria-pressed="${metal}">Kovový lesk</button><button type="button" class="btn" data-ppduo aria-pressed="${duo}">Dvě barvy</button></div>`;
+}
+function palPlace(btn){
+ const e=palEl();e.hidden=false;
+ const r=btn.getBoundingClientRect(),w=e.offsetWidth,h=e.offsetHeight,vw=document.documentElement.clientWidth,vh=window.innerHeight;
+ let left=Math.min(Math.max(12,r.left),vw-w-12);
+ let top=r.bottom+6;if(top+h>vh-12)top=Math.max(12,r.top-h-6);
+ e.style.left=left+'px';e.style.top=top+'px';
+}
+function palOpen(i,btn){
+ if(palIdx===i){closePal();return}
+ palIdx=i;palSide=2;palRender();palPlace(btn);
+ document.querySelectorAll('[data-colbtn]').forEach(b=>b.setAttribute('aria-expanded',String(b.dataset.colbtn==i)));
+}
+const palSet=(fn,keepOpen)=>{
+ const c=S.cat[palIdx];if(!c)return;
+ fn(c);save();
+ const i=palIdx,duo=!!c[4];
+ view();
+ if(keepOpen||duo){palIdx=i;palRender();const b=document.querySelector('[data-colbtn="'+i+'"]');if(b){palPlace(b);b.setAttribute('aria-expanded','true')}}
+ else closePal();
+};
+document.addEventListener('click',e=>{
+ const pe=palEl();if(!pe||pe.hidden)return;
+ if(pe.contains(e.target)){
+  const t=e.target.closest('button');if(!t)return;
+  if(t.hasAttribute('data-ppx')){closePal();return}
+  if(t.dataset.ppside){palSide=+t.dataset.ppside;palRender();return}
+  if(t.dataset.ppc){const k=palSide===4&&S.cat[palIdx]&&S.cat[palIdx][4]?4:2;palSet(c=>{c[k]=t.dataset.ppc;c[6]=''});return}
+  if(t.dataset.ppm){const k=palSide===4&&S.cat[palIdx]&&S.cat[palIdx][4]?4:2;palSet(c=>{c[k]=t.dataset.ppm;c[6]='1'});return}
+  if(t.hasAttribute('data-ppmetal')){palSet(c=>{c[6]=c[6]?'':'1'},true);return}
+  if(t.hasAttribute('data-ppduo')){palSet(c=>{if(c[4]){c[4]='';palSide=2}else c[4]=c[2]},true);return}
+  return;
+ }
+ if(!e.target.closest('[data-colbtn]'))closePal();
+});
+document.addEventListener('input',e=>{
+ if(e.target.id!=='ppcustom'||palIdx==null)return;
+ const c=S.cat[palIdx];if(!c)return;
+ c[palSide===4&&c[4]?4:2]=e.target.value;save();
+ const b=document.querySelector('[data-colbtn="'+palIdx+'"]');
+ if(b){b.querySelector('.sw').style.background=sw(palIdx);b.querySelector('.cname').textContent=colLabel(c)}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&palIdx!=null){const b=document.querySelector('[data-colbtn="'+palIdx+'"]');closePal();if(b)b.focus()}});
+const palFollow=()=>{
+ if(palIdx==null)return;
+ const b=document.querySelector('[data-colbtn="'+palIdx+'"]');
+ if(!b){closePal();return}
+ const r=b.getBoundingClientRect();
+ if(r.bottom<0||r.top>window.innerHeight){closePal();return}
+ palPlace(b);
+};
+window.addEventListener('resize',palFollow);
+window.addEventListener('scroll',e=>{if(palIdx!=null&&!(palEl().contains(e.target)))palFollow()},true);
 function catView(app){
  app.innerHTML=`<div class="card"><h2>Katalog filamentů</h2><div class="sortbar"><label for="catsort">Řadit podle</label><select id="catsort">${SORTS.map(([k,l])=>`<option value="${k}"${(S.catSort&&S.catSort.by||'manual')===k?' selected':''}>${l}</option>`).join('')}</select><button class="btn" id="catdir" type="button"${(S.catSort&&S.catSort.by||'manual')==='manual'?' disabled':''} aria-label="Směr řazení">${S.catSort&&S.catSort.dir<0?'↓ Sestupně':'↑ Vzestupně'}</button></div><div class="tw"><table><thead><tr><th>Výrobce</th><th>Typ</th><th>Barva</th><th>Kč/kg</th><th>Hmotnost (g)</th><th></th></tr></thead><tbody>`+
  catOrder(catPin).map(i=>{const c=S.cat[i];return `<tr>${[0,1,2,3,5].map(j=>j===2?`<td data-label="Barva">${colorCell(c,i)}</td>`:j<2?`<td data-label="${j?'Typ':'Výrobce'}">${selCell(c,i,j)}</td>`:`<td data-label="${j===5?'Hmotnost (g)':'Cena (Kč/kg)'}"><input data-ci="${i}" data-cj="${j}" value="${esc(j===5?(c[5]??''):c[j])}" inputmode="decimal"${j===5&&isLow(c[5])?' class="low"':''}></td>`).join('')}<td class="x"><button class="btn" style="margin:0;padding:5px 9px" data-del="${i}" aria-label="Smazat řádek"><span aria-hidden="true">×</span><span class="dl"> Smazat</span></button></td></tr>`}).join('')+
- `</tbody></table></div><button class="btn" id="add">Přidat filament</button><p class="note">Ceny z katalogu se použijí ve výběru cívek na kartě Vícebarevný (AMS). Hmotnost (g) je množství filamentu na cívce; při 100 g a méně se pole podbarví červeně. Pod výběrem barvy je deset základních barev na jedno klepnutí (u dvoubarevného filamentu mění levou půlku). Tlačítko „kov“ přidá vzorku kovový lesk, hotové odstíny najdete v nabídce „Kovové odstíny“. Řazení se použije při dalším zobrazení katalogu, ne během psaní do pole. Řazení je jen pro zobrazení, pořadí cívek se nemění.</p></div>`;
+ `</tbody></table></div><button class="btn" id="add">Přidat filament</button><p class="note">Ceny z katalogu se použijí ve výběru cívek na kartě Vícebarevný (AMS). Hmotnost (g) je množství filamentu na cívce; při 100 g a méně se pole podbarví červeně. Klepnutím na barvu otevřete paletu: deset základních barev, kovové odstíny, vlastní barvu, kovový lesk a rozdělení na dvě barvy. Řazení se použije při dalším zobrazení katalogu, ne během psaní do pole. Řazení je jen pro zobrazení, pořadí cívek se nemění.</p></div>`;
  app.querySelectorAll('[data-ci]').forEach(el=>el.oninput=()=>{S.cat[el.dataset.ci][el.dataset.cj]=el.dataset.cj==='3'?N(el.value):el.value;if(el.dataset.cj==='5')el.classList.toggle('low',isLow(el.value));save()});
  app.querySelectorAll('[data-cs]').forEach(el=>el.onchange=()=>{
   const i=el.dataset.cs,j=el.dataset.cj;
@@ -354,18 +434,10 @@ function catView(app){
   S.cat[i][j]=el.value;save();
  });
  app.querySelectorAll('[data-ed]').forEach(el=>{el.onblur=()=>{delete ED[el.dataset.ed];view()};el.focus()});
- app.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{S.cat.splice(b.dataset.del,1);catPin=null;save();view()});
+ app.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{closePal();S.cat.splice(b.dataset.del,1);catPin=null;save();view()});
  document.getElementById('catsort').onchange=e=>{S.catSort={by:e.target.value,dir:(S.catSort&&S.catSort.dir)||1};catPin=null;save();view()};
  document.getElementById('catdir').onclick=()=>{const cs=S.catSort||{by:'manual',dir:1};S.catSort={by:cs.by,dir:cs.dir<0?1:-1};catPin=null;save();view()};
- app.querySelectorAll('[data-pal]').forEach(b=>b.onclick=()=>{S.cat[b.dataset.pal][2]=b.dataset.hex;save();view()});
- app.querySelectorAll('[data-met]').forEach(b=>b.onclick=()=>{const c=S.cat[b.dataset.met];c[6]=c[6]?'':'1';save();view()});
- app.querySelectorAll('[data-mp]').forEach(el=>el.onchange=()=>{
-  if(el.value==='')return;
-  const c=S.cat[el.dataset.mp],m=METALS[+el.value];
-  c[2]=m[1];c[4]='';c[6]='1';save();view();
- });
- app.querySelectorAll('[data-c2on]').forEach(b=>b.onclick=()=>{S.cat[b.dataset.c2on][4]=S.cat[b.dataset.c2on][2];save();view()});
- app.querySelectorAll('[data-c2off]').forEach(b=>b.onclick=()=>{S.cat[b.dataset.c2off][4]='';save();view()});
+ app.querySelectorAll('[data-colbtn]').forEach(b=>b.onclick=()=>palOpen(+b.dataset.colbtn,b));
  document.getElementById('add').onclick=()=>{S.cat.push(['','','#9aa0a6',0,'','']);catPin=S.cat.length-1;save();view()};
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;subMsg='';catPin=null;save();view()});
