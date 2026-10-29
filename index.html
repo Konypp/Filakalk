@@ -168,7 +168,7 @@ input.low{background:rgba(217,83,79,.2);border-color:#d9534f}
 <div id="mbar" hidden><span>Prodejní cena</span><b id="mp"></b></div>
 </div>
 <script>
-const APP_VERSION='1.10.2';
+const APP_VERSION='1.11.0';
 const KEY='kalk3d_v1';
 const COMMON=[['h','Doba tisku – hodiny','h'],['m','Doba tisku – minuty','min'],['kwh','Naměřená spotřeba (volitelné)','kWh'],['w','Příkon tiskárny (když kWh = 0)','W'],['el','Cena elektřiny','Kč/kWh'],['am','Amortizace a opotřebení','Kč/h'],['ph','Příprava / postprocessing – hodiny','h'],['pm','Příprava / postprocessing – minuty','min'],['rate','Sazba práce','Kč/h'],['risk','Riziková přirážka','%'],['mar','Obchodní marže','%']];
 const DEF={tab:'single',mode:'markup',
@@ -484,8 +484,19 @@ const catCount=()=>{
 function catView(app){
  app.innerHTML=`<div class="card"><h2>Katalog filamentů</h2>${filterBar()}${catCount()}${sortChips()}<div class="tw"><table><thead><tr>${sortTh('brand','Výrobce')}${sortTh('type','Typ')}${sortTh('color','Barva')}${sortTh('price','Kč/kg')}${sortTh('weight','Hmotnost (g)')}<th></th></tr></thead><tbody>`+
  catVisible().map(i=>{const c=S.cat[i];return `<tr>${[0,1,2,3,5].map(j=>j===2?`<td data-label="Barva">${colorCell(c,i)}</td>`:j<2?`<td data-label="${j?'Typ':'Výrobce'}">${selCell(c,i,j)}</td>`:`<td data-label="${j===5?'Hmotnost (g)':'Cena (Kč/kg)'}"><input data-ci="${i}" data-cj="${j}" value="${esc(j===5?(c[5]??''):c[j])}" inputmode="decimal"${j===5&&isLow(c[5])?' class="low"':''}></td>`).join('')}<td class="x"><button class="btn" style="margin:0;padding:5px 9px" data-del="${i}" aria-label="Smazat řádek"><span aria-hidden="true">×</span><span class="dl"> Smazat</span></button></td></tr>`}).join('')+
- `</tbody></table></div><button class="btn" id="add">Přidat filament</button><p class="note">Ceny z katalogu se použijí ve výběru cívek na kartě Vícebarevný (AMS). Hmotnost (g) je množství filamentu na cívce; při 100 g a méně se pole podbarví červeně. Klepnutím na barvu otevřete paletu: deset základních barev, kovové odstíny, vlastní barvu, kovový lesk a rozdělení na dvě barvy. Řazení: klepněte na název sloupce (na telefonu na tlačítka nad seznamem), šipka ukazuje vzestupně ▲ nebo sestupně ▼. Řazení a filtry se použijí při dalším zobrazení katalogu, ne během psaní do pole. Jsou jen pro zobrazení, pořadí ani obsah katalogu se nemění. Filtry se po obnovení stránky zruší.</p></div>`;
- app.querySelectorAll('[data-ci]').forEach(el=>el.oninput=()=>{S.cat[el.dataset.ci][el.dataset.cj]=el.dataset.cj==='3'?N(el.value):el.value;if(el.dataset.cj==='5')el.classList.toggle('low',isLow(el.value));save()});
+ `</tbody></table></div><button class="btn" id="add">Přidat filament</button><p class="note">Ceny z katalogu se použijí ve výběru cívek na kartě Vícebarevný (AMS). Hmotnost (g) je množství filamentu na cívce; při 100 g a méně se pole podbarví červeně. Do pole lze napsat výpočet, např. 820-35, a po opuštění pole nebo Enteru se přepočítá (stačí i jen -35 k aktuální hodnotě). Klepnutím na barvu otevřete paletu: deset základních barev, kovové odstíny, vlastní barvu, kovový lesk a rozdělení na dvě barvy. Řazení: klepněte na název sloupce (na telefonu na tlačítka nad seznamem), šipka ukazuje vzestupně ▲ nebo sestupně ▼. Řazení a filtry se použijí při dalším zobrazení katalogu, ne během psaní do pole. Jsou jen pro zobrazení, pořadí ani obsah katalogu se nemění. Filtry se po obnovení stránky zruší.</p></div>`;
+ const wExpr=(txt,prev)=>{const m=String(txt).replace(/[−–]/g,'-').match(/^\s*(\d+(?:[.,]\d+)?)?\s*((?:[-+]\s*\d+(?:[.,]\d+)?\s*)+)$/);if(!m)return null;if(m[1]==null&&(prev===''||prev==null))return null;let t=m[1]!=null?parseFloat(m[1].replace(',','.')):N(prev);(m[2].match(/[-+]\s*\d+(?:[.,]\d+)?/g)||[]).forEach(p=>{const n=parseFloat(p.replace(/\s/g,'').slice(1).replace(',','.'));t+=p.trim()[0]==='-'?-n:n});return Math.max(0,Math.round(t*10)/10)};
+ app.querySelectorAll('[data-ci]').forEach(el=>{
+  const i=el.dataset.ci,j=el.dataset.cj;
+  el.oninput=()=>{
+   if(j==='5'&&wExpr(el.value,S.cat[i][5])!==null)return;
+   S.cat[i][j]=j==='3'?N(el.value):el.value;if(j==='5')el.classList.toggle('low',isLow(el.value));save()};
+  if(j==='5'){
+   const calc=()=>{const r=wExpr(el.value,S.cat[i][5]);if(r===null)return;el.value=r;S.cat[i][5]=String(r);el.classList.toggle('low',isLow(r));save()};
+   el.onchange=calc;el.onblur=calc;el.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();calc();el.blur()}};
+   el.title='Lze zadat výpočet, např. 820-35 (zbývající hmotnost po tisku)';
+  }
+ });
  app.querySelectorAll('[data-cs]').forEach(el=>el.onchange=()=>{
   const i=el.dataset.cs,j=el.dataset.cj;
   if(el.value==='__other'){ED[i+'_'+j]=true;S.cat[i][j]='';save();view();return}
