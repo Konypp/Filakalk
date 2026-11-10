@@ -48,6 +48,21 @@ input,select{width:100%;padding:8px;border:1px solid var(--line);border-radius:6
 .row b{font-variant-numeric:tabular-nums;white-space:nowrap}
 .dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px}
 .tot{font-weight:700}
+.imp{border:1px solid var(--acc);border-radius:10px;padding:12px;margin:0 0 14px;background:var(--bg)}
+.imp h3{margin:0 0 4px;font-size:1rem}
+.imp .im-sub{color:var(--mut);font-size:.85rem;margin:0 0 10px;overflow-wrap:anywhere}
+.imp .im-r{display:grid;grid-template-columns:minmax(150px,1fr) minmax(0,2fr);gap:6px 12px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.imp .im-f{display:flex;align-items:center;gap:8px;min-width:0}
+.imp .im-d{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);flex:none}
+.imp .im-g{color:var(--mut);font-size:.85rem;grid-column:2}
+.imp .im-g.warn{color:#c0392b}
+.imp .im-a{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.imp .btn{margin:0}
+.imp .btn.pri{background:var(--acc);color:var(--accink)}
+.imp select{width:100%;min-width:0}
+.imp .im-pl{display:flex;align-items:center;gap:8px;margin:0 0 8px}.imp .im-pl select{width:auto}
+@media(max-width:859px){.imp .im-r{grid-template-columns:1fr}.imp .im-g{grid-column:1}}
+.cat-a{display:flex;flex-wrap:wrap;gap:8px}
 .note{color:var(--mut);font-size:.82rem;margin-top:10px}
 table{width:100%;border-collapse:collapse}
 .tw{overflow-x:auto}
@@ -131,6 +146,8 @@ input.low{background:rgba(217,83,79,.2);border-color:#d9534f}
  #mbar:not([hidden]){display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;justify-content:space-between;align-items:baseline;gap:8px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:var(--panel);border-top:1px solid var(--line);box-shadow:0 -4px 14px rgba(0,0,0,.12)}
  #mbar b{font-size:1.35rem}
  .tw{overflow:visible}
+ .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;overflow:visible}
+ .tabs button{min-width:0;padding:9px 4px;font-size:.85rem;line-height:1.2;text-align:center;display:flex;align-items:center;justify-content:center;min-height:48px}
  table,tbody,tr,td{display:block}
  thead{display:none}
  tr{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px;margin-bottom:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
@@ -167,7 +184,7 @@ input.low{background:rgba(217,83,79,.2);border-color:#d9534f}
 <div id="mbar" hidden><span>Prodejní cena</span><b id="mp"></b></div>
 </div>
 <script>
-const APP_VERSION='1.11.1';
+const APP_VERSION='1.12.1';
 const KEY='kalk3d_v1';
 const COMMON=[['h','Doba tisku – hodiny','h'],['m','Doba tisku – minuty','min'],['kwh','Naměřená spotřeba (volitelné)','kWh'],['w','Příkon tiskárny (když kWh = 0)','W'],['el','Cena elektřiny','Kč/kWh'],['am','Amortizace a opotřebení','Kč/h'],['ph','Příprava / postprocessing – hodiny','h'],['pm','Příprava / postprocessing – minuty','min'],['rate','Sazba práce','Kč/h'],['risk','Riziková přirážka','%'],['mar','Obchodní marže','%']];
 const DEF={tab:'single',mode:'markup',
@@ -480,10 +497,109 @@ const catCount=()=>{
  if(cs&&cs.by&&cs.by!=='manual')parts.push(`<span>Řazeno: ${SORT_LABELS[cs.by]||''} ${cs.dir<0?'↓ sestupně':'↑ vzestupně'}</span><button type="button" class="btn" id="fsortclear">Zrušit řazení</button>`);
  return parts.length?`<div class="fcount" role="status">${parts.join('')}</div>`:'';
 };
+let imp=null,impMsg=null;
+const fmtG=v=>(Math.round(v*10)/10).toLocaleString('cs');
+const hx=h=>{h=String(h||'').replace('#','');return [0,2,4].map(i=>parseInt(h.substr(i,2),16)||0)};
+const cDist=(a,b)=>{const x=hx(a),y=hx(b);return Math.hypot(x[0]-y[0],x[1]-y[1],x[2]-y[2])};
+const hasW=c=>c[5]!==''&&c[5]!=null;
+const impMatch=f=>{
+ const t=String(f.type||'').toLowerCase().trim();let best='',bd=101;
+ S.cat.forEach((c,i)=>{
+  if(!hasW(c)||!t)return;const ct=String(c[1]||'').toLowerCase();
+  if(!(ct===t||ct.startsWith(t+' ')||ct.startsWith(t+'-')))return;
+  const d=Math.min(cDist(f.color,c[2]),c[4]?cDist(f.color,c[4]):999);
+  if(d<bd){bd=d;best=i}
+ });
+ return best;
+};
+async function zipRead(file,want){
+ const buf=await file.arrayBuffer(),dv=new DataView(buf),u=new Uint8Array(buf),td=new TextDecoder();
+ let e=-1;for(let i=buf.byteLength-22;i>=Math.max(0,buf.byteLength-65557);i--)if(dv.getUint32(i,true)===0x06054b50){e=i;break}
+ if(e<0)throw new Error('zip');
+ const n=dv.getUint16(e+10,true);let p=dv.getUint32(e+16,true);
+ for(let k=0;k<n;k++){
+  if(dv.getUint32(p,true)!==0x02014b50)break;
+  const m=dv.getUint16(p+10,true),cs=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),el=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),lo=dv.getUint32(p+42,true);
+  if(td.decode(u.subarray(p+46,p+46+nl))===want){
+   const st=lo+30+dv.getUint16(lo+26,true)+dv.getUint16(lo+28,true),d=u.slice(st,st+cs);
+   if(m===0)return td.decode(d);
+   return await new Response(new Blob([d]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+  }
+  p+=46+nl+el+cl;
+ }
+ return null;
+}
+function parseSliceInfo(xml){
+ const doc=new DOMParser().parseFromString(xml,'application/xml');
+ return [...doc.querySelectorAll('plate')].map((pl,k)=>{
+  const md=key=>{const m=pl.querySelector(`metadata[key="${key}"]`);return m?m.getAttribute('value'):''};
+  return {idx:md('index')||String(k+1),time:N(md('prediction')),fil:[...pl.querySelectorAll('filament')].map(f=>({type:f.getAttribute('type')||'',color:(f.getAttribute('color')||'#9aa0a6').slice(0,7).toLowerCase(),g:N(f.getAttribute('used_g'))})).filter(f=>f.g>0)};
+ }).filter(p=>p.fil.length);
+}
+async function parseGcode(file){
+ const head=await file.slice(0,300000).text(),tail=file.size>300000?await file.slice(Math.max(300000,file.size-600000)).text():'';
+ const t=head+'\n'+tail;
+ const m=t.match(/^;\s*total filament weight \[g\]\s*[:=]\s*(.+)$/m)||t.match(/^;\s*filament used \[g\]\s*[:=]\s*(.+)$/m);
+ if(!m)return [];
+ const list=k=>{const r=t.match(new RegExp('^;\\s*'+k+'\\s*=\\s*(.+)$','m'));return r?r[1].split(/[;,]/).map(x=>x.trim()):[]};
+ const types=list('filament_type'),cols=list('filament_colour');
+ const fil=m[1].split(/[,;]/).map((x,i)=>({type:types[i]||'',color:/^#[0-9a-f]{6}/i.test(cols[i]||'')?cols[i].slice(0,7).toLowerCase():'#9aa0a6',g:N(x)})).filter(f=>f.g>0);
+ return fil.length?[{idx:'1',time:0,fil}]:[];
+}
+async function impLoad(file){
+ impMsg=null;
+ try{
+  let plates=[];
+  if(/\.gcode$/i.test(file.name)&&!/\.3mf$/i.test(file.name))plates=await parseGcode(file);
+  else{const xml=await zipRead(file,'Metadata/slice_info.config');if(xml)plates=parseSliceInfo(xml)}
+  if(!plates.length){imp=null;impMsg={err:'V souboru není údaj o spotřebě filamentu. V Bambu Studiu nejdřív tisk naslicujte a použijte Soubor → Exportovat → Exportovat naslicovaný soubor plátu (.gcode.3mf).'}}
+  else{imp={name:file.name,plates,plate:0,map:null};impSetPlate(0)}
+ }catch(e){imp=null;impMsg={err:'Soubor se nepodařilo přečíst. Podporované jsou soubory .gcode.3mf a .gcode z Bambu Studia.'}}
+ view();
+ const el=document.querySelector('.imp');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+const impSetPlate=k=>{imp.plate=k;imp.map=imp.plates[k].fil.map(impMatch)};
+const fmtT=s=>{s=Math.round(s/60);return (s>=60?Math.floor(s/60)+' h ':'')+(s%60)+' min'};
+function impPanel(){
+ let h='';
+ if(impMsg&&impMsg.err)h+=`<div class="imp" role="alert"><p style="margin:0 0 10px">${esc(impMsg.err)}</p><div class="im-a"><button type="button" class="btn" id="impmsgx">Zavřít</button></div></div>`;
+ if(impMsg&&impMsg.done)h+=`<div class="imp" role="status"><h3>Odečteno z katalogu</h3><p class="im-sub">${esc(impMsg.name)}</p>${impMsg.done.map(d=>`<div class="im-r"><div class="im-f"><span class="im-d" style="background:${esc(d.bg)}"></span><span>${esc(d.label)}</span></div><div>−${fmtG(d.g)} g → zbývá <b>${fmtG(d.after)} g</b></div></div>`).join('')}<div class="im-a"><button type="button" class="btn" id="impundo">Vrátit zpět</button><button type="button" class="btn" id="impmsgx">Zavřít</button></div></div>`;
+ if(!imp)return h;
+ const pl=imp.plates[imp.plate];
+ const opts=sel=>`<option value="">— neodečítat —</option>`+S.cat.map((c,i)=>`<option value="${i}"${String(sel)===String(i)?' selected':''}${hasW(c)?'':' disabled'}>${esc([c[0],c[1]].filter(Boolean).join(' ')||'Bez názvu')} · ${esc(colLabel(c))} · ${hasW(c)?esc(fmtG(N(c[5])))+' g':'bez hmotnosti'}</option>`).join('');
+ h+=`<div class="imp"><h3>Odečíst tisk z katalogu</h3><p class="im-sub">${esc(imp.name)}${pl.time?` · odhad času ${fmtT(pl.time)}`:''}</p>`+
+ (imp.plates.length>1?`<div class="im-pl"><label for="implate">Plát</label><select id="implate">${imp.plates.map((p,k)=>`<option value="${k}"${k===imp.plate?' selected':''}>Plát ${esc(p.idx)}</option>`).join('')}</select></div>`:'');
+ const tot=new Map(),cnt=new Map();pl.fil.forEach((f,k)=>{const i=imp.map[k];if(i!==''){tot.set(i,(tot.get(i)||0)+f.g);cnt.set(i,(cnt.get(i)||0)+1)}});
+ h+=pl.fil.map((f,k)=>{
+  const sel=imp.map[k],c=sel!==''?S.cat[sel]:null,g=c?tot.get(sel):0,more=c&&cnt.get(sel)>1?` (celkem ${fmtG(g)} g z této cívky)`:'';
+  const info=c?(N(c[5])<g?`<div class="im-g warn">Na cívce je jen ${fmtG(N(c[5]))} g, tisk spotřebuje ${fmtG(g)} g. Zbude 0 g.</div>`:`<div class="im-g">${fmtG(N(c[5]))} g → ${fmtG(N(c[5])-g)} g${more}</div>`):'';
+  return `<div class="im-r"><div class="im-f"><span class="im-d" style="background:${esc(f.color)}"></span><span>${esc(f.type||'Filament')} · <b>${fmtG(f.g)} g</b></span></div><select data-imap="${k}" aria-label="Cívka pro ${esc(f.type||'filament')} ${fmtG(f.g)} g">${opts(sel)}</select>${info}</div>`;
+ }).join('')+
+ `<div class="im-a"><button type="button" class="btn pri" id="impok"${imp.map.some(x=>x!=='')?'':' disabled'}>Odečíst z katalogu</button><button type="button" class="btn" id="impcancel">Zrušit</button></div></div>`;
+ return h;
+}
+function impBind(){
+ const $=id=>document.getElementById(id);
+ $('impbtn').onclick=()=>$('impfile').click();
+ $('impfile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)impLoad(f)};
+ if($('impmsgx'))$('impmsgx').onclick=()=>{impMsg=null;view()};
+ if($('impundo'))$('impundo').onclick=()=>{impMsg.done.forEach(d=>{if(S.cat[d.i])S.cat[d.i][5]=d.before});impMsg=null;save();view()};
+ if(!imp)return;
+ if($('implate'))$('implate').onchange=e=>{impSetPlate(+e.target.value);view()};
+ document.querySelectorAll('[data-imap]').forEach(el=>el.onchange=()=>{imp.map[+el.dataset.imap]=el.value===''?'':+el.value;view()});
+ $('impcancel').onclick=()=>{imp=null;view()};
+ $('impok').onclick=()=>{
+  const pl=imp.plates[imp.plate],sum=new Map();
+  pl.fil.forEach((f,k)=>{const i=imp.map[k];if(i!==''&&S.cat[i]&&hasW(S.cat[i]))sum.set(i,(sum.get(i)||0)+f.g)});
+  const done=[];
+  sum.forEach((g,i)=>{const c=S.cat[i],before=c[5],after=Math.max(0,Math.round((N(before)-g)*10)/10);c[5]=String(after);done.push({i,before,g,after,bg:sw(i),label:[c[0],c[1]].filter(Boolean).join(' ')+' · '+colLabel(c)})});
+  impMsg={done,name:imp.name};imp=null;save();view();
+ };
+}
 function catView(app){
- app.innerHTML=`<div class="card"><h2>Katalog filamentů</h2>${filterBar()}${catCount()}${sortChips()}<div class="tw"><table><thead><tr>${sortTh('brand','Výrobce')}${sortTh('type','Typ')}${sortTh('color','Barva')}${sortTh('price','Kč/kg')}${sortTh('weight','Hmotnost (g)')}<th></th></tr></thead><tbody>`+
+ app.innerHTML=`<div class="card"><h2>Katalog filamentů</h2>${impPanel()}${filterBar()}${catCount()}${sortChips()}<div class="tw"><table><thead><tr>${sortTh('brand','Výrobce')}${sortTh('type','Typ')}${sortTh('color','Barva')}${sortTh('price','Kč/kg')}${sortTh('weight','Hmotnost (g)')}<th></th></tr></thead><tbody>`+
  catVisible().map(i=>{const c=S.cat[i];return `<tr>${[0,1,2,3,5].map(j=>j===2?`<td data-label="Barva">${colorCell(c,i)}</td>`:j<2?`<td data-label="${j?'Typ':'Výrobce'}">${selCell(c,i,j)}</td>`:`<td data-label="${j===5?'Hmotnost (g)':'Cena (Kč/kg)'}"><input data-ci="${i}" data-cj="${j}" value="${esc(j===5?(c[5]??''):c[j])}" inputmode="decimal"${j===5&&isLow(c[5])?' class="low"':''}></td>`).join('')}<td class="x"><button class="btn" style="margin:0;padding:5px 9px" data-del="${i}" aria-label="Smazat řádek"><span aria-hidden="true">×</span><span class="dl"> Smazat</span></button></td></tr>`}).join('')+
- `</tbody></table></div><button class="btn" id="add">Přidat filament</button><p class="note">Ceny z katalogu se použijí ve výběru cívek na kartě Vícebarevný (AMS). Hmotnost (g) je množství filamentu na cívce; při 100 g a méně se pole podbarví červeně. Do pole lze napsat výpočet, např. 820-35, a po opuštění pole nebo Enteru se přepočítá (stačí i jen -35 k aktuální hodnotě). Klepnutím na barvu otevřete paletu: deset základních barev, kovové odstíny, vlastní barvu, kovový lesk a rozdělení na dvě barvy. Řazení: klepněte na název sloupce (na telefonu na tlačítka nad seznamem), šipka ukazuje vzestupně ▲ nebo sestupně ▼. Řazení a filtry se použijí při dalším zobrazení katalogu, ne během psaní do pole. Jsou jen pro zobrazení, pořadí ani obsah katalogu se nemění. Filtry se po obnovení stránky zruší.</p></div>`;
+ `</tbody></table></div><div class="cat-a"><button class="btn" id="add">Přidat filament</button><button class="btn" id="impbtn">Odečíst tisk z Bambu Studia</button><input type="file" id="impfile" hidden></div><p class="note">Ceny z katalogu se použijí ve výběru cívek na kartě Vícebarevný (AMS). Hmotnost (g) je množství filamentu na cívce; při 100 g a méně se pole podbarví červeně. Do pole lze napsat výpočet, např. 820-35, a po opuštění pole nebo Enteru se přepočítá (stačí i jen -35 k aktuální hodnotě). Tlačítkem „Odečíst tisk z Bambu Studia“ načtete naslicovaný soubor (.gcode.3mf, v Bambu Studiu Soubor → Exportovat → Exportovat naslicovaný soubor plátu) a spotřeba se po potvrzení odečte z vybraných cívek. Klepnutím na barvu otevřete paletu: deset základních barev, kovové odstíny, vlastní barvu, kovový lesk a rozdělení na dvě barvy. Řazení: klepněte na název sloupce (na telefonu na tlačítka nad seznamem), šipka ukazuje vzestupně ▲ nebo sestupně ▼. Řazení a filtry se použijí při dalším zobrazení katalogu, ne během psaní do pole. Jsou jen pro zobrazení, pořadí ani obsah katalogu se nemění. Filtry se po obnovení stránky zruší.</p></div>`;
  const wExpr=(txt,prev)=>{const m=String(txt).replace(/[−–]/g,'-').match(/^\s*(\d+(?:[.,]\d+)?)?\s*((?:[-+]\s*\d+(?:[.,]\d+)?\s*)+)$/);if(!m)return null;if(m[1]==null&&(prev===''||prev==null))return null;let t=m[1]!=null?parseFloat(m[1].replace(',','.')):N(prev);(m[2].match(/[-+]\s*\d+(?:[.,]\d+)?/g)||[]).forEach(p=>{const n=parseFloat(p.replace(/\s/g,'').slice(1).replace(',','.'));t+=p.trim()[0]==='-'?-n:n});return Math.max(0,Math.round(t*10)/10)};
  app.querySelectorAll('[data-ci]').forEach(el=>{
   const i=el.dataset.ci,j=el.dataset.cj;
@@ -513,6 +629,7 @@ function catView(app){
  const fsc=document.getElementById('fsortclear');if(fsc)fsc.onclick=()=>{S.catSort={by:'manual',dir:1};catPin=null;closePal();save();view()};
  app.querySelectorAll('[data-colbtn]').forEach(b=>b.onclick=()=>palOpen(+b.dataset.colbtn,b));
  document.getElementById('add').onclick=()=>{S.cat.push(['','','#9aa0a6',0,'','']);catPin=S.cat.length-1;save();view()};
+ impBind();
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;subMsg='';catPin=null;save();view()});
 view();
